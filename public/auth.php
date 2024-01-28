@@ -5,28 +5,28 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use App\Model\Auth;
 use App\Model\User;
 
-$app->post('/signin', function (Request $request, Response $response) {
-
-  $data = $request->getParsedBody();
-
-  $result = Auth::login($data['deslogin'], $data['despassword']);
-
-  $response->getBody()->write(json_encode($result));
-
-  return $response->withHeader('content-type', 'application/json');
-
-});
-
 $app->post('/signup', function (Request $request, Response $response) {
  
   $data = $request->getParsedBody();
 
-  $result = User::save($data);
+  $result = Auth::signup($data);
 
   $response->getBody()->write(json_encode($result));
 
   return $response->withHeader('content-type', 'application/json');
  
+});
+
+$app->post('/signin', function (Request $request, Response $response) {
+
+  $data = $request->getParsedBody();
+
+  $result = Auth::signin($data['deslogin'], $data['despassword']);
+
+  $response->getBody()->write(json_encode($result));
+
+  return $response->withHeader('content-type', 'application/json');
+
 });
 
 $app->post('/forgot', function (Request $request, Response $response) {

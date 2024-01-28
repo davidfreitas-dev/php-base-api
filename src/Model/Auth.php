@@ -7,8 +7,69 @@ use App\Mail\Mailer;
 use App\Response;
 
 class Auth {
+
+  public static function signup($user) 
+	{
+
+		$userExists = Auth::checkUserExistence($user);
+			
+		if ($userExists) {
+
+			return Response::handleResponse(
+        400, 
+        "error", 
+        "Usuário já cadastrado no banco de dados"
+      );
+
+		}		
+
+		$sql = "CALL sp_users_create(
+              :desperson, 
+              :deslogin, 
+              :despassword, 
+              :desemail, 
+              :nrphone, 
+              :nrcpf, 
+              :inadmin
+            )";
+		
+		try {
+
+			$db = new Database();
+
+			$results = $db->select($sql, array(
+				":deslogin"=>$user['deslogin'],
+				":desperson"=>$user['desperson'],
+				":despassword"=>Auth::getPasswordHash($user['despassword']),
+				":desemail"=>$user['desemail'],
+				":nrphone"=>$user['nrphone'],
+				":nrcpf"=>$user['nrcpf'],
+				":inadmin"=>$user['inadmin']
+			));
+
+			if (count($results)) {
+
+				return Response::handleResponse(
+          201, 
+          "success", 
+          "Cadastro efetuado com sucesso"
+        );
+
+			}
+
+		} catch (\PDOException $e) {
+			
+			return Response::handleResponse(
+        500, 
+        "error", 
+        "Falha ao cadastrar usuário: " . $e->getMessage()
+      );
+			
+		}		
+
+	}
         
-  public static function login($login, $password)
+  public static function signin($login, $password)
   {
 
     $sql = "SELECT * FROM tb_users a 
@@ -19,11 +80,11 @@ class Auth {
 
     $db = new Database();
 
-    $result = $db->select($sql, array(
+    $results = $db->select($sql, array(
       ":deslogin"=>$login
     )); 
 
-    if (count($result) === 0) {
+    if (count($results) === 0) {
 
       return Response::handleResponse(
         404, 
@@ -33,7 +94,7 @@ class Auth {
 
     }
 
-    $data = $result[0];
+    $data = $results[0];
 
     if (password_verify($password, $data['despassword'])) {
 
@@ -50,6 +111,49 @@ class Auth {
     }
 
   }
+
+  private static function checkUserExistence($user) 
+	{
+		
+		$sql = "SELECT * FROM tb_users a 
+            INNER JOIN tb_persons b 
+            ON a.idperson = b.idperson 
+            WHERE a.deslogin = :deslogin 
+            OR b.desemail = :desemail	
+            OR b.nrcpf = :nrcpf";
+		
+		try {
+
+			$db = new Database();
+			
+			$results = $db->select($sql, array(
+				":deslogin"=>$user['deslogin'],
+				":desemail"=>$user['desemail'],
+				":nrcpf"=>$user['nrcpf']
+			));
+
+			return count($results);
+
+		} catch (\PDOException $e) {
+
+			return Response::handleResponse(
+        500, 
+        "error", 
+        "Falha ao obter usuário: " . $e->getMessage()
+      );
+
+		}		
+
+	}
+
+  public static function getPasswordHash($password)
+	{
+
+		return password_hash($password, PASSWORD_BCRYPT, [
+			'cost' => 12
+		]);
+
+	}
 
   public static function getForgot($email)
   {
