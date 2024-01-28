@@ -1,10 +1,10 @@
 <?php 
 
-namespace App;
+namespace App\Utils;
 
-class Response {
+class ApiResponseFormatter {
 
-	public static function handleResponse($code, $status, $response)
+	public static function formatResponse($code, $status, $response)
 	{
 
 		return array(

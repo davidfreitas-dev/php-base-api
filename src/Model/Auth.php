@@ -5,7 +5,8 @@ namespace App\Model;
 use App\DB\Database;
 use App\Mail\Mailer;
 use App\Model\User;
-use App\Response;
+use App\Utils\AESCryptographer;
+use App\Utils\ApiResponseFormatter;
 
 class Auth extends User {
 
@@ -16,7 +17,7 @@ class Auth extends User {
 			
 		if ($userExists) {
 
-			return Response::handleResponse(
+			return ApiResponseFormatter::formatResponse(
         400, 
         "error", 
         "Usuário já cadastrado no banco de dados"
@@ -50,7 +51,7 @@ class Auth extends User {
 
 			if (count($results)) {
 
-				return Response::handleResponse(
+				return ApiResponseFormatter::formatResponse(
           201, 
           "success", 
           "Cadastro efetuado com sucesso"
@@ -60,7 +61,7 @@ class Auth extends User {
 
 		} catch (\PDOException $e) {
 			
-			return Response::handleResponse(
+			return ApiResponseFormatter::formatResponse(
         500, 
         "error", 
         "Falha ao cadastrar usuário: " . $e->getMessage()
@@ -87,7 +88,7 @@ class Auth extends User {
 
     if (empty($results)) {
 
-      return Response::handleResponse(
+      return ApiResponseFormatter::formatResponse(
         404, 
         "error", 
         "Usuário inexistente ou senha inválida."
@@ -103,7 +104,7 @@ class Auth extends User {
 
     } else {
 
-      return Response::handleResponse(
+      return ApiResponseFormatter::formatResponse(
         404, 
         "error", 
         "Usuário inexistente ou senha inválida."
@@ -140,7 +141,7 @@ class Auth extends User {
 
       if (empty($results)) {
 
-        return Response::handleResponse(
+        return ApiResponseFormatter::formatResponse(
           404, 
           "error", 
           "O e-mail informado não consta no banco de dados"
@@ -159,27 +160,19 @@ class Auth extends User {
 
       if (empty($query))	{
 
-        return Response::handleResponse(
+        return ApiResponseFormatter::formatResponse(
           400, 
           "error", 
           "Não foi possível recuperar a senha"
         );
 
-      } 
-      
-      $dataRecovery = $query[0];
+      }
 
-      $code = openssl_encrypt(
-        $dataRecovery['idrecovery'], 
-        'AES-128-CBC', 
-        pack("a16", $_ENV['SECRET']), 
-        0, 
-        pack("a16", $_ENV['SECRET_IV'])
-      );
+      $recoveryData = $query[0];
 
-      $code = base64_encode($code);
+      $code = AESCryptographer::encrypt($recoveryData);
 
-      $link = "http://127.0.0.1:3000/forgot/reset?code=$code";
+      $link = "http://application/forgot/reset?code=$code";
 
       $mailer = new Mailer(
         $data['desemail'], 
@@ -193,7 +186,7 @@ class Auth extends User {
 
       $mailer->send();
 
-      return Response::handleResponse(
+      return ApiResponseFormatter::formatResponse(
         200, 
         "success", 
         "Link de redefinição de senha enviado para o e-mail informado"
@@ -201,7 +194,7 @@ class Auth extends User {
 
     } catch (\PDOException $e) {
       
-      return Response::handleResponse(
+      return ApiResponseFormatter::formatResponse(
         500, 
         "error", 
         "Falha ao recuperar senha: " . $e->getMessage()
@@ -214,15 +207,7 @@ class Auth extends User {
   public static function validateForgotDecrypt($code)
   {
 
-    $code = base64_decode($code);
-
-    $idrecovery = openssl_decrypt(
-      $code, 
-      'AES-128-CBC', 
-      pack("a16", $_ENV['SECRET']), 
-      0, 
-      pack("a16", $_ENV['SECRET_IV'])
-    );
+    $idrecovery = AESCryptographer::decrypt($code);
 
     $sql = "SELECT * FROM tb_userspasswordsrecoveries a
             INNER JOIN tb_users b USING(iduser)
@@ -241,7 +226,7 @@ class Auth extends User {
 
       if (empty($results)) {
 
-        return Response::handleResponse(
+        return ApiResponseFormatter::formatResponse(
           204, 
           "error", 
           "Não foi possível recuperar a senha"
@@ -253,7 +238,7 @@ class Auth extends User {
 
     } catch (\PDOException $e) {
       
-      return Response::handleResponse(
+      return ApiResponseFormatter::formatResponse(
         401, 
         "error", 
         "Falha ao validar token: " . $e->getMessage()
@@ -280,7 +265,7 @@ class Auth extends User {
 
     } catch (\PDOException $e) {
 
-      return Response::handleResponse(
+      return ApiResponseFormatter::formatResponse(
         500, 
         "error", 
         "Falha ao gravar senha antiga: " . $e->getMessage()
@@ -306,7 +291,7 @@ class Auth extends User {
         ":iduser"=>$iduser
       ));
 
-      return Response::handleResponse(
+      return ApiResponseFormatter::formatResponse(
         200, 
         "success", 
         "Senha alterada com sucesso"
@@ -314,7 +299,7 @@ class Auth extends User {
 
     } catch (\PDOException $e) {
 
-      return Response::handleResponse(
+      return ApiResponseFormatter::formatResponse(
         500, 
         "error", 
         "Falha ao gravar nova senha: " . $e->getMessage()
@@ -350,7 +335,7 @@ class Auth extends User {
 
       $data['token'] = $token;
 
-      return Response::handleResponse(200, "success", $data);
+      return ApiResponseFormatter::formatResponse(200, "success", $data);
 
   }
   

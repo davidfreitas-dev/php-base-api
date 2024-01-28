@@ -3,7 +3,7 @@
 namespace App\Model;
 
 use App\DB\Database;
-use App\Response;
+use App\Utils\ApiResponseFormatter;
 
 class User {
 
@@ -21,7 +21,7 @@ class User {
 			
 			if (count($results)) {
 
-				return Response::handleResponse(
+				return ApiResponseFormatter::formatResponse(
           200, 
           "success", 
           $results
@@ -29,7 +29,7 @@ class User {
 
 			}
       
-      return Response::handleResponse(
+      return ApiResponseFormatter::formatResponse(
         204, 
         "success", 
         "Nenhum usuário encontrado"
@@ -37,7 +37,7 @@ class User {
 
 		} catch (\PDOException $e) {
 
-			return Response::handleResponse(
+			return ApiResponseFormatter::formatResponse(
         500, 
         "error", 
         "Falha ao obter usuários: " . $e->getMessage()
@@ -65,7 +65,7 @@ class User {
 
       if (count($results)) {
 			
-			  return Response::handleResponse(
+			  return ApiResponseFormatter::formatResponse(
           200, 
           "success", 
           $results[0]
@@ -73,7 +73,7 @@ class User {
         
       }
 
-			return Response::handleResponse(
+			return ApiResponseFormatter::formatResponse(
         404, 
         "error", 
         "Usuário não encontrado"
@@ -81,7 +81,7 @@ class User {
 
 		} catch (\PDOException $e) {
 			
-			return Response::handleResponse(
+			return ApiResponseFormatter::formatResponse(
         500, 
         "error", 
         "Falha ao obter usuário: " . $e->getMessage()
@@ -115,7 +115,7 @@ class User {
 
 		} catch (\PDOException $e) {
 
-			return Response::handleResponse(
+			return ApiResponseFormatter::formatResponse(
         500, 
         "error", 
         "Falha ao obter usuário: " . $e->getMessage()
@@ -156,7 +156,7 @@ class User {
 
 			if (count($result) == 0) {
 
-				return Response::handleResponse(
+				return ApiResponseFormatter::formatResponse(
           200, 
           "success", 
           "Usuário atualizado com sucesso"
@@ -166,7 +166,7 @@ class User {
 
 		} catch (\PDOException $e) {
 
-			return Response::handleResponse(
+			return ApiResponseFormatter::formatResponse(
         500, 
         "error", 
         "Falha ao atualizar dados do usuário: " . $e->getMessage()
@@ -189,7 +189,7 @@ class User {
 				":iduser"=>$iduser
 			));
 			
-			return Response::handleResponse(
+			return ApiResponseFormatter::formatResponse(
         200, 
         "success", 
         "Usuário excluido com sucesso"
@@ -197,7 +197,7 @@ class User {
 
 		} catch (\PDOException $e) {
 
-			return Response::handleResponse(
+			return ApiResponseFormatter::formatResponse(
         500, 
         "error", 
         "Falha ao excluir usuário: " . $e->getMessage()
