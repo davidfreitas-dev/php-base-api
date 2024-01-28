@@ -84,7 +84,7 @@ class Auth {
       ":deslogin"=>$login
     )); 
 
-    if (count($results) === 0) {
+    if (empty($results)) {
 
       return Response::handleResponse(
         404, 
@@ -171,70 +171,66 @@ class Auth {
         ":email"=>$email
       ));
 
-      if (count($results) === 0) {
+      if (empty($results)) {
 
         return Response::handleResponse(
           404, 
           "error", 
-          "E-mail não encontrado."
+          "O e-mail informado não consta no banco de dados"
         );
 
-      } else {
+      } 
+      
+      $data = $results[0];
 
-        $data = $results[0];
+      $query = $db->select(
+        "CALL sp_userspasswordsrecoveries_create(:iduser, :desip)", array(
+          ":iduser"=>$data['iduser'],
+          ":desip"=>$_SERVER['REMOTE_ADDR']
+        )
+      ); 
 
-        $query = $db->select(
-          "CALL sp_userspasswordsrecoveries_create(:iduser, :desip)", array(
-            ":iduser"=>$data['iduser'],
-            ":desip"=>$_SERVER['REMOTE_ADDR']
-          )
-        ); 
+      if (empty($query))	{
 
-        if (count($query) === 0)	{
+        return Response::handleResponse(
+          400, 
+          "error", 
+          "Não foi possível recuperar a senha"
+        );
 
-          return Response::handleResponse(
-            400, 
-            "error", 
-            "Não foi possível recuperar a senha."
-          );
+      } 
+      
+      $dataRecovery = $query[0];
 
-        } else {
+      $code = openssl_encrypt(
+        $dataRecovery['idrecovery'], 
+        'AES-128-CBC', 
+        pack("a16", $_ENV['SECRET']), 
+        0, 
+        pack("a16", $_ENV['SECRET_IV'])
+      );
 
-          $dataRecovery = $query[0];
+      $code = base64_encode($code);
 
-          $code = openssl_encrypt(
-            $dataRecovery['idrecovery'], 
-            'AES-128-CBC', 
-            pack("a16", $_ENV['SECRET']), 
-            0, 
-            pack("a16", $_ENV['SECRET_IV'])
-          );
+      $link = "http://127.0.0.1:3000/forgot/reset?code=$code";
 
-          $code = base64_encode($code);
+      $mailer = new Mailer(
+        $data['desemail'], 
+        $data['desperson'], 
+        "Redefinição de senha", 
+        array(
+          "name"=>$data['desperson'],
+          "link"=>$link
+        )
+      );				
 
-          $link = "http://127.0.0.1:3000/forgot/reset?code=$code";
+      $mailer->send();
 
-          $mailer = new Mailer(
-            $data['desemail'], 
-            $data['desperson'], 
-            "Redefinir senha de usuário do sistema", 
-            array(
-              "name"=>$data['desperson'],
-              "link"=>$link
-            )
-          );				
-
-          $mailer->send();
-
-          return Response::handleResponse(
-            200, 
-            "success", 
-            "E-mail de recuperação enviado com sucesso!"
-          );
-
-        }
-
-      }
+      return Response::handleResponse(
+        200, 
+        "success", 
+        "Link de redefinição de senha enviado para o e-mail informado"
+      );
 
     } catch (\PDOException $e) {
       
@@ -276,19 +272,17 @@ class Auth {
         ":idrecovery"=>$idrecovery
       ));
 
-      if (count($results) === 0) {
+      if (empty($results)) {
 
         return Response::handleResponse(
           204, 
           "error", 
-          "Não foi possível recuperar a senha."
+          "Não foi possível recuperar a senha"
         );
 
-      } else {
-
-        return $results[0];
-
-      }
+      } 
+      
+      return $results[0];
 
     } catch (\PDOException $e) {
       
