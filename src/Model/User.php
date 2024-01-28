@@ -47,7 +47,7 @@ class User {
 
 	}
 
-	public static function get($iduser)
+	public static function getById($iduser)
 	{
 
 		$sql = "SELECT * FROM tb_users a 
@@ -91,7 +91,41 @@ class User {
 
 	}
 
-	public static function update($userId, $user) 
+  public static function getByCredentials($user) 
+	{
+		
+		$sql = "SELECT * FROM tb_users a 
+            INNER JOIN tb_persons b 
+            ON a.idperson = b.idperson 
+            WHERE a.deslogin = :deslogin 
+            OR b.desemail = :desemail	
+            OR b.nrcpf = :nrcpf";
+		
+		try {
+
+			$db = new Database();
+			
+			$results = $db->select($sql, array(
+				":deslogin"=>$user['deslogin'],
+				":desemail"=>$user['desemail'],
+				":nrcpf"=>$user['nrcpf']
+			));
+
+			return count($results);
+
+		} catch (\PDOException $e) {
+
+			return Response::handleResponse(
+        500, 
+        "error", 
+        "Falha ao obter usuário: " . $e->getMessage()
+      );
+
+		}		
+
+	}
+
+	public static function update($iduser, $user) 
 	{
 		
 		$sql = "CALL sp_usersupdate_save(
@@ -110,7 +144,7 @@ class User {
 			$db = new Database();
 			
 			$result = $db->select($sql, array(
-				":iduser"=>$userId,
+				":iduser"=>$iduser,
 				":desperson"=>$user['desperson'],
 				":deslogin"=>$user['deslogin'],
 				":despassword"=>User::getPasswordHash($user['despassword']),
@@ -142,7 +176,7 @@ class User {
 
 	}
 
-	public static function delete($userId) 
+	public static function delete($iduser) 
 	{
 		
 		$sql = "CALL sp_users_delete(:iduser)";		
@@ -152,7 +186,7 @@ class User {
 			$db = new Database();
 			
 			$db->query($sql, array(
-				":iduser"=>$userId
+				":iduser"=>$iduser
 			));
 			
 			return Response::handleResponse(

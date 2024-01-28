@@ -18,7 +18,7 @@ $app->get('/users/{id}', function (Request $request, Response $response) {
 
   $id = $request->getAttribute('id');
 
-  $result = User::get($id);
+  $result = User::getById($id);
 
   $response->getBody()->write(json_encode($result));
 

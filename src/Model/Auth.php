@@ -4,14 +4,15 @@ namespace App\Model;
 
 use App\DB\Database;
 use App\Mail\Mailer;
+use App\Model\User;
 use App\Response;
 
-class Auth {
+class Auth extends User {
 
   public static function signup($user) 
 	{
 
-		$userExists = Auth::checkUserExistence($user);
+		$userExists = User::getByCredentials($user);
 			
 		if ($userExists) {
 
@@ -111,40 +112,6 @@ class Auth {
     }
 
   }
-
-  private static function checkUserExistence($user) 
-	{
-		
-		$sql = "SELECT * FROM tb_users a 
-            INNER JOIN tb_persons b 
-            ON a.idperson = b.idperson 
-            WHERE a.deslogin = :deslogin 
-            OR b.desemail = :desemail	
-            OR b.nrcpf = :nrcpf";
-		
-		try {
-
-			$db = new Database();
-			
-			$results = $db->select($sql, array(
-				":deslogin"=>$user['deslogin'],
-				":desemail"=>$user['desemail'],
-				":nrcpf"=>$user['nrcpf']
-			));
-
-			return count($results);
-
-		} catch (\PDOException $e) {
-
-			return Response::handleResponse(
-        500, 
-        "error", 
-        "Falha ao obter usuário: " . $e->getMessage()
-      );
-
-		}		
-
-	}
 
   public static function getPasswordHash($password)
 	{
