@@ -26,6 +26,25 @@ SET time_zone = "+00:00";
 --
 
 DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_users_create`(`pdesperson` VARCHAR(64), `pdeslogin` VARCHAR(64), `pdespassword` VARCHAR(256), `pdesemail` VARCHAR(128), `pnrphone` VARCHAR(15), `pnrcpf` VARCHAR(15), `pinadmin` TINYINT)
+BEGIN
+  
+  DECLARE vidperson INT;
+    
+  INSERT INTO tb_persons (desperson, desemail, nrphone, nrcpf)
+  VALUES(pdesperson, pdesemail, pnrphone, pnrcpf);
+  
+  SET vidperson = LAST_INSERT_ID();
+  
+  INSERT INTO tb_users (idperson, deslogin, despassword, inadmin)
+  VALUES(vidperson, pdeslogin, pdespassword, pinadmin);
+  
+  SELECT * FROM tb_users a INNER JOIN tb_persons b USING(idperson) WHERE a.iduser = LAST_INSERT_ID();
+    
+END$$
+DELIMITER ;
+
+DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_users_delete`(`piduser` INT)
 BEGIN
     
@@ -43,25 +62,6 @@ BEGIN
   DELETE FROM tb_users WHERE iduser = piduser;
   
   SET FOREIGN_KEY_CHECKS = 1;
-    
-END$$
-DELIMITER ;
-
-DELIMITER $$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_users_create`(`pdesperson` VARCHAR(64), `pdeslogin` VARCHAR(64), `pdespassword` VARCHAR(256), `pdesemail` VARCHAR(128), `pnrphone` VARCHAR(15), `pnrcpf` VARCHAR(15), `pinadmin` TINYINT)
-BEGIN
-  
-  DECLARE vidperson INT;
-    
-  INSERT INTO tb_persons (desperson, desemail, nrphone, nrcpf)
-  VALUES(pdesperson, pdesemail, pnrphone, pnrcpf);
-  
-  SET vidperson = LAST_INSERT_ID();
-  
-  INSERT INTO tb_users (idperson, deslogin, despassword, inadmin)
-  VALUES(vidperson, pdeslogin, pdespassword, pinadmin);
-  
-  SELECT * FROM tb_users a INNER JOIN tb_persons b USING(idperson) WHERE a.iduser = LAST_INSERT_ID();
     
 END$$
 DELIMITER ;
