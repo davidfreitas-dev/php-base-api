@@ -1,0 +1,5 @@
+vendor/
+.idea/
+.git/
+.env
+.DS_Store
