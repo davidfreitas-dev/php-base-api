@@ -23,95 +23,66 @@ class Auth extends User {
         "Usuário já cadastrado no banco de dados"
       );
 
-		}		
-
-		$sql = "CALL sp_users_create(
-              :desperson, 
-              :deslogin, 
-              :despassword, 
-              :desemail, 
-              :nrphone, 
-              :nrcpf, 
-              :inadmin
-            )";
-		
-		try {
-
-			$db = new Database();
-
-			$results = $db->select($sql, array(
-				":deslogin"=>$user['deslogin'],
-				":desperson"=>$user['desperson'],
-				":despassword"=>Auth::getPasswordHash($user['despassword']),
-				":desemail"=>$user['desemail'],
-				":nrphone"=>$user['nrphone'],
-				":nrcpf"=>$user['nrcpf'],
-				":inadmin"=>$user['inadmin']
-			));
-
-			if (count($results)) {
-
-				return ApiResponseFormatter::formatResponse(
-          201, 
-          "success", 
-          "Cadastro efetuado com sucesso"
-        );
-
-			}
-
-		} catch (\PDOException $e) {
-			
-			return ApiResponseFormatter::formatResponse(
-        500, 
-        "error", 
-        "Falha ao cadastrar usuário: " . $e->getMessage()
-      );
-			
-		}		
+		}
+    
+    return User::create($user);
 
 	}
         
-  public static function signin($login, $password)
+  public static function signin($credential, $password)
   {
 
     $sql = "SELECT * FROM tb_users a 
             INNER JOIN tb_persons b 
             ON a.idperson = b.idperson 
             WHERE a.deslogin = :deslogin 
-            OR b.desemail = :deslogin";
+            OR b.desemail = :desemail	
+            OR b.nrcpf = :nrcpf";
 
-    $db = new Database();
+    try {
+      
+      $db = new Database();
 
-    $results = $db->select($sql, array(
-      ":deslogin"=>$login
-    )); 
+      $results = $db->select($sql, array(
+        ":deslogin"=>$credential,
+        ":desemail"=>$credential,
+        ":nrcpf"=>$credential
+      ));
 
-    if (empty($results)) {
+      if (empty($results)) {
 
+        return ApiResponseFormatter::formatResponse(
+          404, 
+          "error", 
+          "Usuário inexistente ou senha inválida."
+        );
+  
+      }
+
+      $data = $results[0];
+
+      if (password_verify($password, $data['despassword'])) {
+
+        return Auth::generateToken($data);
+
+      } 
+      
       return ApiResponseFormatter::formatResponse(
         404, 
         "error", 
         "Usuário inexistente ou senha inválida."
       );
 
-    }
-
-    $data = $results[0];
-
-    if (password_verify($password, $data['despassword'])) {
-
-      return Auth::generateToken($data);
-
-    } else {
-
+    } catch (\PDOException $e) {
+      
       return ApiResponseFormatter::formatResponse(
-        404, 
+        500, 
         "error", 
-        "Usuário inexistente ou senha inválida."
+        "Falha na autenticação do usuário: " . $e->getMessage()
       );
 
     }
-
+    
   }
 
   public static function getPasswordHash($password)
