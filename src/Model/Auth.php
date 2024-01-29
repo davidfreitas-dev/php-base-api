@@ -85,15 +85,6 @@ class Auth extends User {
     
   }
 
-  public static function getPasswordHash($password)
-	{
-
-		return password_hash($password, PASSWORD_BCRYPT, [
-			'cost' => 12
-		]);
-
-	}
-
   public static function getForgot($email)
   {
 
@@ -250,7 +241,7 @@ class Auth extends User {
   {
 
     $sql = "UPDATE tb_users 
-            SET despassword = :password 
+            SET despassword = :despassword 
             WHERE iduser = :iduser";
 
     try {
@@ -258,7 +249,7 @@ class Auth extends User {
       $db = new Database();
 
       $db->query($sql, array(
-        ":password"=>$password,
+        ":despassword"=>Auth::getPasswordHash($password),
         ":iduser"=>$iduser
       ));
 
@@ -279,6 +270,15 @@ class Auth extends User {
     }
 
   }
+
+  public static function getPasswordHash($password)
+	{
+
+		return password_hash($password, PASSWORD_BCRYPT, [
+			'cost' => 12
+		]);
+
+	}
 
   private static function generateToken($data)
   {

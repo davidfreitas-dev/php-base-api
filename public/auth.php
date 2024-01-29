@@ -3,7 +3,6 @@
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use App\Model\Auth;
-use App\Model\User;
 
 $app->post('/signup', function (Request $request, Response $response) {
  
@@ -63,9 +62,7 @@ $app->post('/forgot/reset', function (Request $request, Response $response) {
 
     Auth::setForgotUsed($forgot['idrecovery']);
 
-    $password = User::getPasswordHash($data['despassword']);
-
-    $result = Auth::setNewPassword($password, $forgot['iduser']);
+    $result = Auth::setNewPassword($data['despassword'], $forgot['iduser']);
 
   } else {
 

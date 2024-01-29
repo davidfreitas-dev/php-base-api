@@ -67,7 +67,7 @@ class User {
 			$results = $db->select($sql, array(
 				":desperson"=>$user['desperson'],
 				":deslogin"=>$user['deslogin'],
-				":despassword"=>Auth::getPasswordHash($user['despassword']),
+				":despassword"=>User::getPasswordHash($user['despassword']),
 				":desemail"=>$user['desemail'],
 				":nrphone"=>$user['nrphone'],
 				":nrcpf"=>$user['nrcpf'],
@@ -262,7 +262,7 @@ class User {
 
 	}
 
-  public static function getPasswordHash($password)
+  private static function getPasswordHash($password)
 	{
 
 		return password_hash($password, PASSWORD_BCRYPT, [
