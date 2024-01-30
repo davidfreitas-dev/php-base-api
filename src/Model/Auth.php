@@ -85,7 +85,7 @@ class Auth extends User {
     
   }
 
-  public static function getForgot($email)
+  public static function getForgotLink($email)
   {
 
     $sql = "SELECT * FROM tb_persons a 
@@ -166,7 +166,7 @@ class Auth extends User {
 
   }
 
-  public static function validateForgotDecrypt($code)
+  public static function validateForgotLink($code)
   {
 
     $idrecovery = AESCryptographer::decrypt($code);
@@ -189,9 +189,9 @@ class Auth extends User {
       if (empty($results)) {
 
         return ApiResponseFormatter::formatResponse(
-          204, 
+          401, 
           "error", 
-          "Não foi possível recuperar a senha"
+          "O link de redefinição utilizado expirou"
         );
 
       } 
@@ -201,7 +201,7 @@ class Auth extends User {
     } catch (\PDOException $e) {
       
       return ApiResponseFormatter::formatResponse(
-        401, 
+        500, 
         "error", 
         "Falha ao validar token: " . $e->getMessage()
       );
@@ -230,7 +230,7 @@ class Auth extends User {
       return ApiResponseFormatter::formatResponse(
         500, 
         "error", 
-        "Falha ao gravar senha antiga: " . $e->getMessage()
+        "Falha ao definir senha antiga como usada: " . $e->getMessage()
       );
 
     }
@@ -271,7 +271,7 @@ class Auth extends User {
 
   }
 
-  public static function getPasswordHash($password)
+  private static function getPasswordHash($password)
 	{
 
 		return password_hash($password, PASSWORD_BCRYPT, [

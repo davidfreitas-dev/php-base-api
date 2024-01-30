@@ -32,7 +32,7 @@ $app->post('/forgot', function (Request $request, Response $response) {
  
   $data = $request->getParsedBody();
 
-  $result = Auth::getForgot($data['desemail']);
+  $result = Auth::getForgotLink($data['desemail']);
 
   $response->getBody()->write(json_encode($result));
 
@@ -44,7 +44,7 @@ $app->post('/forgot/token', function (Request $request, Response $response) {
  
   $data = $request->getParsedBody();
 
-  $result = Auth::validateForgotDecrypt($data['code']);
+  $result = Auth::validateForgotLink($data['code']);
 
   $response->getBody()->write(json_encode($result));
 
@@ -56,7 +56,7 @@ $app->post('/forgot/reset', function (Request $request, Response $response) {
  
   $data = $request->getParsedBody();
 
-  $forgot = Auth::validateForgotDecrypt($data['code']);
+  $forgot = Auth::validateForgotLink($data['code']);
 
   if (is_array($forgot)) {
 
