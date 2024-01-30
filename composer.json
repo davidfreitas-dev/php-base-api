@@ -5,8 +5,7 @@
     "selective/basepath": "^2.1",
     "tuupola/slim-jwt-auth": "^3.6",
     "vlucas/phpdotenv": "^5.4",
-    "phpmailer/phpmailer": "^6.6",
-    "mercadopago/dx-php": "2.5.1"
+    "phpmailer/phpmailer": "^6.6"
   },
   "autoload": {
     "psr-4": {
