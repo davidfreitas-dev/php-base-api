@@ -8,24 +8,51 @@ use App\Model\User;
 use App\Utils\AESCryptographer;
 use App\Utils\ApiResponseFormatter;
 
-class Auth extends User {
+class Auth {
 
-  public static function signup($user) 
+  public static function signup($data) 
 	{
 
-		$userExists = User::getByCredentials($user);
-			
-		if ($userExists) {
+		$sql = "SELECT * FROM tb_users a 
+            INNER JOIN tb_persons b 
+            ON a.idperson = b.idperson 
+            WHERE a.deslogin = :deslogin 
+            OR b.desemail = :desemail	
+            OR b.nrcpf = :nrcpf";
 
-			return ApiResponseFormatter::formatResponse(
-        400, 
+    try {
+
+      $db = new Database();
+      
+      $results = $db->select($sql, array(
+        ":deslogin"=>$data['deslogin'],
+        ":desemail"=>$data['desemail'],
+        ":nrcpf"=>$data['nrcpf']
+      ));
+
+      if (!empty($results)) {
+        
+        return ApiResponseFormatter::formatResponse(
+          409, 
+          "error", 
+          "Usuário já cadastrado no banco de dados",
+          []
+        );
+
+      }
+    
+      return User::create($data);      
+
+    } catch (\PDOException $e) {
+
+      return ApiResponseFormatter::formatResponse(
+        500, 
         "error", 
-        "Usuário já cadastrado no banco de dados"
+        "Falha ao cadastrar usuário: " . $e->getMessage(),
+        []
       );
 
-		}
-    
-    return User::create($user);
+    }
 
 	}
         
@@ -54,7 +81,8 @@ class Auth extends User {
         return ApiResponseFormatter::formatResponse(
           404, 
           "error", 
-          "Usuário inexistente ou senha inválida."
+          "Usuário inexistente ou senha inválida",
+          []
         );
   
       }
@@ -70,7 +98,8 @@ class Auth extends User {
       return ApiResponseFormatter::formatResponse(
         404, 
         "error", 
-        "Usuário inexistente ou senha inválida."
+        "Usuário inexistente ou senha inválida",
+        []
       );
 
     } catch (\PDOException $e) {
@@ -78,7 +107,8 @@ class Auth extends User {
       return ApiResponseFormatter::formatResponse(
         500, 
         "error", 
-        "Falha na autenticação do usuário: " . $e->getMessage()
+        "Falha na autenticação do usuário: " . $e->getMessage(),
+        []
       );
 
     }
@@ -106,7 +136,8 @@ class Auth extends User {
         return ApiResponseFormatter::formatResponse(
           404, 
           "error", 
-          "O e-mail informado não consta no banco de dados"
+          "O e-mail informado não consta no banco de dados",
+          []
         );
 
       } 
@@ -125,7 +156,8 @@ class Auth extends User {
         return ApiResponseFormatter::formatResponse(
           400, 
           "error", 
-          "Não foi possível recuperar a senha"
+          "Não foi possível recuperar a senha",
+          []
         );
 
       }
@@ -134,7 +166,7 @@ class Auth extends User {
 
       $code = AESCryptographer::encrypt($recoveryData);
 
-      $link = "http://application/forgot/reset?code=$code";
+      $link = $_ENV['BASE_URL'] . "/reset?code=$code";
 
       $mailer = new Mailer(
         $data['desemail'], 
@@ -151,7 +183,8 @@ class Auth extends User {
       return ApiResponseFormatter::formatResponse(
         200, 
         "success", 
-        "Link de redefinição de senha enviado para o e-mail informado"
+        "Link de redefinição de senha enviado para o e-mail informado",
+        []
       );
 
     } catch (\PDOException $e) {
@@ -159,7 +192,8 @@ class Auth extends User {
       return ApiResponseFormatter::formatResponse(
         500, 
         "error", 
-        "Falha ao recuperar senha: " . $e->getMessage()
+        "Falha ao recuperar senha: " . $e->getMessage(),
+        []
       );
 
     }		
@@ -191,7 +225,8 @@ class Auth extends User {
         return ApiResponseFormatter::formatResponse(
           401, 
           "error", 
-          "O link de redefinição utilizado expirou"
+          "O link de redefinição utilizado expirou",
+          []
         );
 
       } 
@@ -203,7 +238,8 @@ class Auth extends User {
       return ApiResponseFormatter::formatResponse(
         500, 
         "error", 
-        "Falha ao validar token: " . $e->getMessage()
+        "Falha ao validar token: " . $e->getMessage(),
+        []
       );
 
     }
@@ -230,7 +266,8 @@ class Auth extends User {
       return ApiResponseFormatter::formatResponse(
         500, 
         "error", 
-        "Falha ao definir senha antiga como usada: " . $e->getMessage()
+        "Falha ao definir senha antiga como usada: " . $e->getMessage(),
+        []
       );
 
     }
@@ -256,7 +293,8 @@ class Auth extends User {
       return ApiResponseFormatter::formatResponse(
         200, 
         "success", 
-        "Senha alterada com sucesso"
+        "Senha alterada com sucesso",
+        []
       );
 
     } catch (\PDOException $e) {
@@ -264,7 +302,8 @@ class Auth extends User {
       return ApiResponseFormatter::formatResponse(
         500, 
         "error", 
-        "Falha ao gravar nova senha: " . $e->getMessage()
+        "Falha ao gravar nova senha: " . $e->getMessage(),
+        []
       );
 
     }
@@ -306,7 +345,12 @@ class Auth extends User {
 
       $data['token'] = $token;
 
-      return ApiResponseFormatter::formatResponse(200, "success", $data);
+      return ApiResponseFormatter::formatResponse(
+        200, 
+        "success", 
+        "Login efetuado com sucesso",
+        $data
+      );
 
   }
   
