@@ -3,6 +3,7 @@
 namespace App\Model;
 
 use App\DB\Database;
+use App\Enums\HttpStatus as HTTPStatus;
 use App\Utils\ApiResponseFormatter;
 
 class User {
@@ -35,7 +36,7 @@ class User {
 			));
 
       return ApiResponseFormatter::formatResponse(
-        201, 
+        HTTPStatus::CREATED, 
         "success", 
         "Usuário cadastrado com sucesso",
         $results[0]
@@ -44,7 +45,7 @@ class User {
     } catch (\PDOException $e) {
 			
 			return ApiResponseFormatter::formatResponse(
-        500, 
+        HTTPStatus::INTERNAL_SERVER_ERROR, 
         "error", 
         "Falha ao inserir usuário: " . $e->getMessage(),
         []
@@ -70,7 +71,7 @@ class User {
 			if (empty($results)) {
 
 				return ApiResponseFormatter::formatResponse(
-          204, 
+          HTTPStatus::NO_CONTENT,  
           "success", 
           "Nenhum usuário encontrado",
           $results
@@ -79,7 +80,7 @@ class User {
 			}
 
       return ApiResponseFormatter::formatResponse(
-        200, 
+        HTTPStatus::OK, 
         "success", 
         "Lista de usuários",
         $results
@@ -88,7 +89,7 @@ class User {
 		} catch (\PDOException $e) {
 
 			return ApiResponseFormatter::formatResponse(
-        500, 
+        HTTPStatus::INTERNAL_SERVER_ERROR, 
         "error", 
         "Falha ao obter usuários: " . $e->getMessage(),
         []
@@ -117,7 +118,7 @@ class User {
       if (empty($results)) {
 
         return ApiResponseFormatter::formatResponse(
-          404, 
+          HTTPStatus::NOT_FOUND, 
           "error", 
           "Usuário não encontrado",
           $results
@@ -126,7 +127,7 @@ class User {
       }
 			
       return ApiResponseFormatter::formatResponse(
-        200, 
+        HTTPStatus::OK, 
         "success", 
         "Dados do usuário",
         $results
@@ -135,7 +136,7 @@ class User {
 		} catch (\PDOException $e) {
 			
 			return ApiResponseFormatter::formatResponse(
-        500, 
+        HTTPStatus::INTERNAL_SERVER_ERROR, 
         "error", 
         "Falha ao obter usuário: " . $e->getMessage(),
         []
@@ -175,7 +176,7 @@ class User {
 			));
 
 			return ApiResponseFormatter::formatResponse(
-        200, 
+        HTTPStatus::OK, 
         "success", 
         "Usuário atualizado com sucesso",
         $results
@@ -184,7 +185,7 @@ class User {
 		} catch (\PDOException $e) {
 
 			return ApiResponseFormatter::formatResponse(
-        500, 
+        HTTPStatus::INTERNAL_SERVER_ERROR, 
         "error", 
         "Falha ao atualizar dados do usuário: " . $e->getMessage(),
         []
@@ -208,7 +209,7 @@ class User {
 			));
 			
 			return ApiResponseFormatter::formatResponse(
-        200, 
+        HTTPStatus::OK, 
         "success", 
         "Usuário excluido com sucesso",
         []
@@ -217,7 +218,7 @@ class User {
 		} catch (\PDOException $e) {
 
 			return ApiResponseFormatter::formatResponse(
-        500, 
+        HTTPStatus::INTERNAL_SERVER_ERROR, 
         "error", 
         "Falha ao excluir usuário: " . $e->getMessage(),
         []

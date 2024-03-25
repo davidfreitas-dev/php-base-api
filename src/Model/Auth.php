@@ -5,6 +5,7 @@ namespace App\Model;
 use App\DB\Database;
 use App\Mail\Mailer;
 use App\Model\User;
+use App\Enums\HttpStatus as HTTPStatus;
 use App\Utils\AESCryptographer;
 use App\Utils\ApiResponseFormatter;
 
@@ -13,27 +14,12 @@ class Auth {
   public static function signup($data) 
 	{
 
-		$sql = "SELECT * FROM tb_users a 
-            INNER JOIN tb_persons b 
-            ON a.idperson = b.idperson 
-            WHERE a.deslogin = :deslogin 
-            OR b.desemail = :desemail	
-            OR b.nrcpf = :nrcpf";
-
     try {
 
-      $db = new Database();
-      
-      $results = $db->select($sql, array(
-        ":deslogin"=>$data['deslogin'],
-        ":desemail"=>$data['desemail'],
-        ":nrcpf"=>$data['nrcpf']
-      ));
-
-      if (!empty($results)) {
+      if (self::checkDuplicates($data)) {
         
         return ApiResponseFormatter::formatResponse(
-          409, 
+          HTTPStatus::CONFLICT,
           "error", 
           "Usuário já cadastrado no banco de dados",
           []
@@ -49,12 +35,12 @@ class Auth {
 
       }
 
-      return Auth::generateToken($response['data']);
+      return self::generateToken($response['data']);
 
     } catch (\PDOException $e) {
 
       return ApiResponseFormatter::formatResponse(
-        500, 
+        HTTPStatus::INTERNAL_SERVER_ERROR, 
         "error", 
         "Falha ao cadastrar usuário: " . $e->getMessage(),
         []
@@ -87,7 +73,7 @@ class Auth {
       if (empty($results)) {
 
         return ApiResponseFormatter::formatResponse(
-          404, 
+          HTTPStatus::NOT_FOUND, 
           "error", 
           "Usuário inexistente ou senha inválida",
           []
@@ -99,12 +85,12 @@ class Auth {
 
       if (password_verify($password, $data['despassword'])) {
 
-        return Auth::generateToken($data);
+        return self::generateToken($data);
 
       } 
       
       return ApiResponseFormatter::formatResponse(
-        404, 
+        HTTPStatus::NOT_FOUND, 
         "error", 
         "Usuário inexistente ou senha inválida",
         []
@@ -113,7 +99,7 @@ class Auth {
     } catch (\PDOException $e) {
       
       return ApiResponseFormatter::formatResponse(
-        500, 
+        HTTPStatus::INTERNAL_SERVER_ERROR, 
         "error", 
         "Falha na autenticação do usuário: " . $e->getMessage(),
         []
@@ -142,7 +128,7 @@ class Auth {
       if (empty($results)) {
 
         return ApiResponseFormatter::formatResponse(
-          404, 
+          HTTPStatus::NOT_FOUND, 
           "error", 
           "O e-mail informado não consta no banco de dados",
           []
@@ -162,7 +148,7 @@ class Auth {
       if (empty($query))	{
 
         return ApiResponseFormatter::formatResponse(
-          400, 
+          HTTPStatus::BAD_REQUEST,  
           "error", 
           "Não foi possível recuperar a senha",
           []
@@ -189,7 +175,7 @@ class Auth {
       $mailer->send();
 
       return ApiResponseFormatter::formatResponse(
-        200, 
+        HTTPStatus::OK, 
         "success", 
         "Link de redefinição de senha enviado para o e-mail informado",
         []
@@ -198,7 +184,7 @@ class Auth {
     } catch (\PDOException $e) {
       
       return ApiResponseFormatter::formatResponse(
-        500, 
+        HTTPStatus::INTERNAL_SERVER_ERROR, 
         "error", 
         "Falha ao recuperar senha: " . $e->getMessage(),
         []
@@ -231,7 +217,7 @@ class Auth {
       if (empty($results)) {
 
         return ApiResponseFormatter::formatResponse(
-          401, 
+          HTTPStatus::UNAUTHORIZED,  
           "error", 
           "O link de redefinição utilizado expirou",
           []
@@ -244,7 +230,7 @@ class Auth {
     } catch (\PDOException $e) {
       
       return ApiResponseFormatter::formatResponse(
-        500, 
+        HTTPStatus::INTERNAL_SERVER_ERROR, 
         "error", 
         "Falha ao validar token: " . $e->getMessage(),
         []
@@ -272,7 +258,7 @@ class Auth {
     } catch (\PDOException $e) {
 
       return ApiResponseFormatter::formatResponse(
-        500, 
+        HTTPStatus::INTERNAL_SERVER_ERROR, 
         "error", 
         "Falha ao definir senha antiga como usada: " . $e->getMessage(),
         []
@@ -294,12 +280,12 @@ class Auth {
       $db = new Database();
 
       $db->query($sql, array(
-        ":despassword"=>Auth::getPasswordHash($password),
+        ":despassword"=>self::getPasswordHash($password),
         ":iduser"=>$iduser
       ));
 
       return ApiResponseFormatter::formatResponse(
-        200, 
+        HTTPStatus::OK, 
         "success", 
         "Senha alterada com sucesso",
         []
@@ -308,12 +294,42 @@ class Auth {
     } catch (\PDOException $e) {
 
       return ApiResponseFormatter::formatResponse(
-        500, 
+        HTTPStatus::INTERNAL_SERVER_ERROR, 
         "error", 
         "Falha ao gravar nova senha: " . $e->getMessage(),
         []
       );
 
+    }
+
+  }
+
+  private static function checkDuplicates($data) 
+  {
+
+    $sql = "SELECT * FROM tb_users a 
+            INNER JOIN tb_persons b 
+            ON a.idperson = b.idperson 
+            WHERE a.deslogin = :deslogin 
+            OR b.desemail = :desemail	
+            OR b.nrcpf = :nrcpf";
+
+    try {
+
+      $db = new Database();
+        
+      $results = $db->select($sql, array(
+        ":deslogin" => $data['deslogin'],
+        ":desemail" => $data['desemail'],
+        ":nrcpf" => $data['nrcpf']
+      ));
+
+      return !empty($results);
+
+    } catch (\PDOException $e) {
+
+      return false;
+      
     }
 
   }
@@ -347,7 +363,7 @@ class Auth {
       $token = $header . '.' . $payload . '.' . $sign;
 
       return ApiResponseFormatter::formatResponse(
-        200, 
+        HTTPStatus::OK, 
         "success", 
         "Autenticação efetuada com sucesso",
         $token
