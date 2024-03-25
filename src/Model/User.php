@@ -38,7 +38,7 @@ class User {
         201, 
         "success", 
         "Usuário cadastrado com sucesso",
-        $results
+        $results[0]
       );
 
     } catch (\PDOException $e) {

@@ -41,7 +41,15 @@ class Auth {
 
       }
     
-      return User::create($data);      
+      $response = User::create($data);
+
+      if ($response['status'] == 'error') {
+        
+        return $response;
+
+      }
+
+      return Auth::generateToken($response['data']);
 
     } catch (\PDOException $e) {
 
@@ -319,17 +327,12 @@ class Auth {
 
 	}
 
-  private static function generateToken($data)
+  private static function generateToken($payload)
   {
 
       $header = [
           'typ' => 'JWT',
           'alg' => 'HS256'
-      ];
-
-      $payload = [
-          'name' => $data['desperson'],
-          'email' => $data['desemail'],
       ];
 
       $header = json_encode($header);
@@ -343,13 +346,11 @@ class Auth {
 
       $token = $header . '.' . $payload . '.' . $sign;
 
-      $data['token'] = $token;
-
       return ApiResponseFormatter::formatResponse(
         200, 
         "success", 
-        "Login efetuado com sucesso",
-        $data
+        "Autenticação efetuada com sucesso",
+        $token
       );
 
   }
