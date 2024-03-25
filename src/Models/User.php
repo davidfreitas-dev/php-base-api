@@ -1,10 +1,10 @@
 <?php 
 
-namespace App\Model;
+namespace App\Models;
 
 use App\DB\Database;
 use App\Enums\HttpStatus as HTTPStatus;
-use App\Utils\ApiResponseFormatter;
+use App\Helpers\ApiResponseFormatter;
 
 class User {
 

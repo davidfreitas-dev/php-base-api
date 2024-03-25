@@ -2,7 +2,7 @@
 
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
-use App\Model\Auth;
+use App\Models\Auth;
 
 $app->post('/signup', function (Request $request, Response $response) {
  

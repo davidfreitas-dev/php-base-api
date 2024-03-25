@@ -2,7 +2,7 @@
 
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
-use App\Model\User;
+use App\Models\User;
 
 $app->get('/users', function (Request $request, Response $response) {
 

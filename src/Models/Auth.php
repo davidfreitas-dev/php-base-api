@@ -1,13 +1,13 @@
 <?php 
 
-namespace App\Model;
+namespace App\Models;
 
 use App\DB\Database;
 use App\Mail\Mailer;
-use App\Model\User;
+use App\Models\User;
 use App\Enums\HttpStatus as HTTPStatus;
-use App\Utils\AESCryptographer;
-use App\Utils\ApiResponseFormatter;
+use App\Helpers\AESCryptographer;
+use App\Helpers\ApiResponseFormatter;
 
 class Auth {
 
