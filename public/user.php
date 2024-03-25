@@ -6,11 +6,13 @@ use App\Model\User;
 
 $app->get('/users', function (Request $request, Response $response) {
 
-  $result = User::list();
+  $data = User::list();
 
-  $response->getBody()->write(json_encode($result));
+  $response->getBody()->write(json_encode($data));
 
-  return $response->withHeader('content-type', 'application/json');
+  return $response
+    ->withHeader('content-type', 'application/json')
+    ->withStatus($data['code']);
 
 });
 
@@ -18,11 +20,13 @@ $app->get('/users/{id}', function (Request $request, Response $response) {
 
   $id = $request->getAttribute('id');
 
-  $result = User::get($id);
+  $data = User::get($id);
 
-  $response->getBody()->write(json_encode($result));
+  $response->getBody()->write(json_encode($data));
 
-  return $response->withHeader('content-type', 'application/json');
+  return $response
+    ->withHeader('content-type', 'application/json')
+    ->withStatus($data['code']);
 
 });
 
@@ -30,13 +34,15 @@ $app->put('/users/update/{id}', function (Request $request, Response $response) 
 
   $id = $request->getAttribute('id');
 
-  $data = $request->getParsedBody();
+  $payload = $request->getParsedBody();
 
-  $result = User::update($id, $data);
+  $data = User::update($id, $payload);
 
-  $response->getBody()->write(json_encode($result));
+  $response->getBody()->write(json_encode($data));
 
-  return $response->withHeader('content-type', 'application/json');
+  return $response
+    ->withHeader('content-type', 'application/json')
+    ->withStatus($data['code']);
 
 });
 
@@ -44,10 +50,12 @@ $app->delete('/users/delete/{id}', function (Request $request, Response $respons
 
   $id = $request->getAttribute('id');
 
-  $result = User::delete($id);
+  $data = User::delete($id);
 
-  $response->getBody()->write(json_encode($result));
+  $response->getBody()->write(json_encode($data));
 
-  return $response->withHeader('content-type', 'application/json');
+  return $response
+    ->withHeader('content-type', 'application/json')
+    ->withStatus($data['code']);
 
 });
