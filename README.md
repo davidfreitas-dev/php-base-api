@@ -83,7 +83,7 @@ The HOSTNAME in .env file should be the same of docker-compose file db:container
 
 | Parameter  | Type     | Description                                             |
 | :--------  | :------- | :------------------------------------------------------ |
-| `email`    | `string` | **Required**. User's email address                      |
+| `desemail`    | `string` | **Required**. User's email address                      |
 
 **Observation:** The parameters should be passed within a single JSON object.
 
@@ -111,9 +111,8 @@ The HOSTNAME in .env file should be the same of docker-compose file db:container
 
 | Parameter    | Type      | Description                                             |
 | :----------- | :-------- | :------------------------------------------------------ |
-| `password`   | `string`  | **Required**. User's password                           |
-| `userId`     | `integer` | **Required**. Logged user ID                            |
-| `recoveryId` | `integer` | **Required**. Requested recovery ID                     |
+| `token`      | `string`  | **Required**. Token sent by email to the user           |
+| `despassword`   | `string`  | **Required**. User's password                        |
 
 **Observation:** The parameters should be passed within a single JSON object.
 

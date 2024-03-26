@@ -64,19 +64,15 @@ $app->post('/forgot/reset', function (Request $request, Response $response) {
  
   $data = $request->getParsedBody();
 
-  $forgot = Auth::validateForgotLink($data['code']);
+  $results = Auth::validateForgotLink($data['token']);
 
-  if (is_array($forgot)) {
+  if ($results['status'] == 'success') {
 
-    Auth::setForgotUsed($forgot['idrecovery']);
+    Auth::setForgotUsed($results['data']['idrecovery']);
+    
+    $results = Auth::setNewPassword($data['despassword'], $results['data']['iduser']);
 
-    $results = Auth::setNewPassword($data['despassword'], $forgot['iduser']);
-
-  } else {
-
-    $results = $forgot;
-
-  }    
+  }
 
   $response->getBody()->write(json_encode($results));
 
