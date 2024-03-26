@@ -6,56 +6,56 @@ use App\Models\User;
 
 $app->get('/users', function (Request $request, Response $response) {
 
-  $data = User::list();
+  $results = User::list();
 
-  $response->getBody()->write(json_encode($data));
+  $response->getBody()->write(json_encode($results));
 
   return $response
     ->withHeader('content-type', 'application/json')
-    ->withStatus($data['code']);
+    ->withStatus($results['code']);
 
 });
 
-$app->get('/users/{id}', function (Request $request, Response $response) {
+$app->get('/users/{id}', function (Request $request, Response $response, array $args) {
 
-  $id = $request->getAttribute('id');
+  $id = $args['id'];
 
-  $data = User::get($id);
+  $results = User::get($id);
 
-  $response->getBody()->write(json_encode($data));
+  $response->getBody()->write(json_encode($results));
 
   return $response
     ->withHeader('content-type', 'application/json')
-    ->withStatus($data['code']);
+    ->withStatus($results['code']);
 
 });
 
-$app->put('/users/update/{id}', function (Request $request, Response $response) {
+$app->put('/users/update/{id}', function (Request $request, Response $response, array $args) {
 
-  $id = $request->getAttribute('id');
+  $id = $args['id'];
 
-  $payload = $request->getParsedBody();
+  $data = $request->getParsedBody();
 
-  $data = User::update($id, $payload);
+  $results = User::update($id, $data);
 
-  $response->getBody()->write(json_encode($data));
+  $response->getBody()->write(json_encode($results));
 
   return $response
     ->withHeader('content-type', 'application/json')
-    ->withStatus($data['code']);
+    ->withStatus($results['code']);
 
 });
 
-$app->delete('/users/delete/{id}', function (Request $request, Response $response) {
+$app->delete('/users/delete/{id}', function (Request $request, Response $response, array $args) {
 
-  $id = $request->getAttribute('id');
+  $id = $args['id'];
 
-  $data = User::delete($id);
+  $results = User::delete($id);
 
-  $response->getBody()->write(json_encode($data));
+  $response->getBody()->write(json_encode($results));
 
   return $response
     ->withHeader('content-type', 'application/json')
-    ->withStatus($data['code']);
+    ->withStatus($results['code']);
 
 });

@@ -6,82 +6,82 @@ use App\Models\Auth;
 
 $app->post('/signup', function (Request $request, Response $response) {
  
-  $payload = $request->getParsedBody();
+  $data = $request->getParsedBody();
 
-  $data = Auth::signup($payload);
+  $results = Auth::signup($data);
 
-  $response->getBody()->write(json_encode($data));
+  $response->getBody()->write(json_encode($results));
 
   return $response
     ->withHeader('content-type', 'application/json')
-    ->withStatus($data['code']);
+    ->withStatus($results['code']);
  
 });
 
 $app->post('/signin', function (Request $request, Response $response) {
 
-  $payload = $request->getParsedBody();
+  $data = $request->getParsedBody();
 
-  $data = Auth::signin($payload['deslogin'], $payload['despassword']);
+  $results = Auth::signin($data['deslogin'], $data['despassword']);
 
-  $response->getBody()->write(json_encode($data));
+  $response->getBody()->write(json_encode($results));
 
   return $response
     ->withHeader('content-type', 'application/json')
-    ->withStatus($data['code']);
+    ->withStatus($results['code']);
 
 });
 
 $app->post('/forgot', function (Request $request, Response $response) {
  
-  $payload = $request->getParsedBody();
+  $data = $request->getParsedBody();
 
-  $data = Auth::getForgotLink($payload['desemail']);
+  $results = Auth::getForgotLink($data['desemail']);
 
-  $response->getBody()->write(json_encode($data));
+  $response->getBody()->write(json_encode($results));
 
   return $response
     ->withHeader('content-type', 'application/json')
-    ->withStatus($data['code']);
+    ->withStatus($results['code']);
  
 });
 
 $app->post('/forgot/token', function (Request $request, Response $response) {
  
-  $payload = $request->getParsedBody();
+  $data = $request->getParsedBody();
 
-  $data = Auth::validateForgotLink($payload['code']);
+  $results = Auth::validateForgotLink($data['code']);
 
-  $response->getBody()->write(json_encode($data));
+  $response->getBody()->write(json_encode($results));
 
   return $response
     ->withHeader('content-type', 'application/json')
-    ->withStatus($data['code']);
+    ->withStatus($results['code']);
  
 });
 
 $app->post('/forgot/reset', function (Request $request, Response $response) {
  
-  $payload = $request->getParsedBody();
+  $data = $request->getParsedBody();
 
-  $forgot = Auth::validateForgotLink($payload['code']);
+  $forgot = Auth::validateForgotLink($data['code']);
 
   if (is_array($forgot)) {
 
     Auth::setForgotUsed($forgot['idrecovery']);
 
-    $data = Auth::setNewPassword($payload['despassword'], $forgot['iduser']);
+    $results = Auth::setNewPassword($data['despassword'], $forgot['iduser']);
 
   } else {
 
-    $data = $forgot;
+    $results = $forgot;
 
   }    
 
-  $response->getBody()->write(json_encode($data));
+  $response->getBody()->write(json_encode($results));
 
   return $response
     ->withHeader('content-type', 'application/json')
-    ->withStatus($data['code']);
+    ->withStatus($results['code']);
  
 });
