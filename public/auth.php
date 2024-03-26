@@ -50,7 +50,7 @@ $app->post('/forgot/token', function (Request $request, Response $response) {
  
   $data = $request->getParsedBody();
 
-  $results = Auth::validateForgotLink($data['code']);
+  $results = Auth::validateForgotLink($data['token']);
 
   $response->getBody()->write(json_encode($results));
 

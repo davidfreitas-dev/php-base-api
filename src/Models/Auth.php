@@ -225,7 +225,12 @@ class Auth {
 
       } 
       
-      return $results[0];
+      return ApiResponseFormatter::formatResponse(
+        HTTPStatus::OK, 
+        "success", 
+        "Token validado com sucesso",
+        $results[0]
+      );
 
     } catch (\PDOException $e) {
       
