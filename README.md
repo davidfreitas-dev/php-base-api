@@ -30,25 +30,31 @@ The HOSTNAME in .env file should be the same of docker-compose file db:container
 
 ## API Documentation
 
+- [User Registration](#user-registration)
+- [User Authentication](#user-authentication)
+- [User Forgot Password](#user-forgot-password)
+- [User Forgot Token](#user-forgot-token)
+- [User Reset Password](#user-reset-password)
+
 #### User Registration
 
 ```http
   POST /signup
 ```
 
-| Parameter     | Type     | Description                          |
-| :-----------  | :------- | :----------------------------------- |
-| `desperson`   | `string` | **Required**. User's full name      |
-| `deslogin`    | `string` | **Required**. User's username       |
-| `despassword` | `string` | **Required**. User's password       |
-| `desemail`    | `string` | **Required**. User's email address  |
-| `nrphone`     | `string` | User's phone number                 |
-| `nrcpf`       | `string` | User's CPF                          |
+| Parameter     | Type     | Description                                             |
+| :-----------  | :------- | :------------------------------------------------------ |
+| `desperson`   | `string` | **Required**. User's full name                          |
+| `deslogin`    | `string` | **Required**. User's username                           |
+| `despassword` | `string` | **Required**. User's password                           |
+| `desemail`    | `string` | **Required**. User's email address                      |
+| `nrphone`     | `string` | User's phone number                                     |
+| `nrcpf`       | `string` | User's CPF                                              |
 | `inadmin`     | `integer`| **Required**. User's access level (1 = admin, 0 = user) |
 
 **Note:** The parameters above should be passed within a single JSON object.
 
-**Response:** Data of the registered user
+**Response:** JWT token with user data.
 
 #### User Authentication
 
@@ -67,4 +73,48 @@ The HOSTNAME in .env file should be the same of docker-compose file db:container
 
 **Observation:** The parameters should be passed within a single JSON object.
 
-**Response:** Data of the authenticated user
+**Response:** JWT token with user data.
+
+#### User Forgot Password
+
+```http
+  POST /forgot
+```
+
+| Parameter  | Type     | Description                                             |
+| :--------  | :------- | :------------------------------------------------------ |
+| `email`    | `string` | **Required**. User's email address                      |
+
+**Observation:** The parameters should be passed within a single JSON object.
+
+**Response:** Send reset link to user e-mail.
+
+#### User Forgot Token
+
+```http
+  POST /forgot/token
+```
+
+| Parameter  | Type     | Description                                             |
+| :--------  | :------- | :------------------------------------------------------ |
+| `token`    | `string` | **Required**. Token sent by email to the user           |
+
+**Observation:** The parameters should be passed within a single JSON object.
+
+**Response:** Void
+
+#### User Reset Password
+
+```http
+  POST /forgot/reset
+```
+
+| Parameter    | Type      | Description                                             |
+| :----------- | :-------- | :------------------------------------------------------ |
+| `password`   | `string`  | **Required**. User's password                           |
+| `userId`     | `integer` | **Required**. Logged user ID                            |
+| `recoveryId` | `integer` | **Required**. Requested recovery ID                     |
+
+**Observation:** The parameters should be passed within a single JSON object.
+
+**Response:** Void
