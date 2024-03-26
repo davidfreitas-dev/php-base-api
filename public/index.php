@@ -46,11 +46,9 @@ $app->add(new Tuupola\Middleware\JwtAuthentication([
 
 $app->get('/', function (Request $request, Response $response) {
 
-  $message = [
-    'message' => 'Welcome to the Habits API!'
-  ];
-
-  $response->getBody()->write(json_encode($message));
+  $response->getBody()->write(json_encode([
+    'message' => 'Welcome to the PHP Base API project!'
+  ]));
 
   return $response->withHeader('content-type', 'application/json');
 

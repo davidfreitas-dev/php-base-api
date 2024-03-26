@@ -16,7 +16,7 @@ class Auth {
 
     try {
 
-      if (self::checkDuplicates($data)) {
+      if (self::checkUserExists($data)) {
         
         return ApiResponseFormatter::formatResponse(
           HTTPStatus::CONFLICT,
@@ -138,14 +138,14 @@ class Auth {
       
       $data = $results[0];
 
-      $query = $db->select(
+      $results = $db->select(
         "CALL sp_userspasswordsrecoveries_create(:iduser, :desip)", array(
           ":iduser"=>$data['iduser'],
           ":desip"=>$_SERVER['REMOTE_ADDR']
         )
       ); 
 
-      if (empty($query))	{
+      if (empty($results))	{
 
         return ApiResponseFormatter::formatResponse(
           HTTPStatus::BAD_REQUEST,  
@@ -156,9 +156,9 @@ class Auth {
 
       }
 
-      $recoveryData = $query[0];
+      $recoveryData = $results[0];
 
-      $code = AESCryptographer::encrypt($recoveryData);
+      $code = AESCryptographer::encrypt($recoveryData['idrecovery']);
 
       $link = $_ENV['BASE_URL'] . "/reset?code=$code";
 
@@ -304,7 +304,7 @@ class Auth {
 
   }
 
-  private static function checkDuplicates($data) 
+  private static function checkUserExists($data) 
   {
 
     $sql = "SELECT * FROM tb_users a 
