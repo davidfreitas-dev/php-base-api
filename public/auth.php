@@ -67,10 +67,8 @@ $app->post('/forgot/reset', function (Request $request, Response $response) {
   $results = Auth::validateForgotLink($data['token']);
 
   if ($results['status'] == 'success') {
-
-    Auth::setForgotUsed($results['data']['idrecovery']);
     
-    $results = Auth::setNewPassword($data['despassword'], $results['data']['iduser']);
+    $results = Auth::setNewPassword($data['despassword'], $results['data']);
 
   }
 

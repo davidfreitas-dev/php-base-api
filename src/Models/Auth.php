@@ -245,7 +245,45 @@ class Auth {
 
   }
 
-  public static function setForgotUsed($idrecovery)
+  public static function setNewPassword($password, $data)
+  {
+
+    $sql = "UPDATE tb_users 
+            SET despassword = :despassword 
+            WHERE iduser = :iduser";
+
+    try {
+
+      $db = new Database();
+
+      $db->query($sql, array(
+        ":despassword"=>self::getPasswordHash($password),
+        ":iduser"=>$data['iduser']
+      ));
+
+      self::setForgotUsed($data['idrecovery']);
+
+      return ApiResponseFormatter::formatResponse(
+        HTTPStatus::OK, 
+        "success", 
+        "Senha alterada com sucesso",
+        []
+      );
+
+    } catch (\PDOException $e) {
+
+      return ApiResponseFormatter::formatResponse(
+        HTTPStatus::INTERNAL_SERVER_ERROR, 
+        "error", 
+        "Falha ao gravar nova senha: " . $e->getMessage(),
+        []
+      );
+
+    }
+
+  }
+
+  private static function setForgotUsed($idrecovery)
   {
 
     $sql = "UPDATE tb_userspasswordsrecoveries 
@@ -266,42 +304,6 @@ class Auth {
         HTTPStatus::INTERNAL_SERVER_ERROR, 
         "error", 
         "Falha ao definir senha antiga como usada: " . $e->getMessage(),
-        []
-      );
-
-    }
-
-  }
-
-  public static function setNewPassword($password, $iduser)
-  {
-
-    $sql = "UPDATE tb_users 
-            SET despassword = :despassword 
-            WHERE iduser = :iduser";
-
-    try {
-
-      $db = new Database();
-
-      $db->query($sql, array(
-        ":despassword"=>self::getPasswordHash($password),
-        ":iduser"=>$iduser
-      ));
-
-      return ApiResponseFormatter::formatResponse(
-        HTTPStatus::OK, 
-        "success", 
-        "Senha alterada com sucesso",
-        []
-      );
-
-    } catch (\PDOException $e) {
-
-      return ApiResponseFormatter::formatResponse(
-        HTTPStatus::INTERNAL_SERVER_ERROR, 
-        "error", 
-        "Falha ao gravar nova senha: " . $e->getMessage(),
         []
       );
 
