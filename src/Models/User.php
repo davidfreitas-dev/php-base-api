@@ -4,7 +4,7 @@ namespace App\Models;
 
 use App\DB\Database;
 use App\Enums\HttpStatus as HTTPStatus;
-use App\Helpers\ApiResponseFormatter;
+use App\Utils\ApiResponseFormatter;
 
 class User {
 

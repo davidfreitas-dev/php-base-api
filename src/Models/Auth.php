@@ -6,8 +6,8 @@ use App\DB\Database;
 use App\Mail\Mailer;
 use App\Models\User;
 use App\Enums\HttpStatus as HTTPStatus;
-use App\Helpers\AESCryptographer;
-use App\Helpers\ApiResponseFormatter;
+use App\Utils\AESCryptographer;
+use App\Utils\ApiResponseFormatter;
 
 class Auth {
 

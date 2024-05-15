@@ -41,24 +41,52 @@ class Database {
 	public function query($rawQuery, $params = array())
 	{
 
-		$stmt = $this->conn->prepare($rawQuery);
+    try {
+      
+      $this->conn->beginTransaction();
 
-		$this->setParams($stmt, $params);
+      $stmt = $this->conn->prepare($rawQuery);
 
-		$stmt->execute();
+      $this->setParams($stmt, $params);
+
+      $stmt->execute();
+
+      $this->conn->commit();
+
+    } catch (\PDOException $e) {
+      
+      $this->conn->rollBack();
+      
+      throw $e;
+
+    }
 
 	}
 
 	public function select($rawQuery, $params = array()):array
 	{
 
-		$stmt = $this->conn->prepare($rawQuery);
+		try {
+      
+      $stmt = $this->conn->prepare($rawQuery);
 
-		$this->setParams($stmt, $params);
+      $this->setParams($stmt, $params);
 
-		$stmt->execute();
+      $stmt->execute();
 
-		return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+      $results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+      $this->conn->commit();
+
+      return $results;
+
+    } catch (\PDOException $e) {
+      
+      $this->conn->rollBack();
+      
+      throw $e;
+
+    }
 
 	}
     
