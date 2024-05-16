@@ -67,6 +67,8 @@ class Database {
 	{
 
 		try {
+
+      $this->conn->beginTransaction();
       
       $stmt = $this->conn->prepare($rawQuery);
 

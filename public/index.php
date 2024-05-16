@@ -36,6 +36,7 @@ $app->add(new Tuupola\Middleware\JwtAuthentication([
   ],
   "secret" => $_ENV['JWT_SECRET_KEY'],
   "algorithm" => "HS256",
+  "attribute" => "jwt",
   "error" => function ($response, $arguments) {
     $data["status"] = "error";
     $data["message"] = $arguments["message"];
