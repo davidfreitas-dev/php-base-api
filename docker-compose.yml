@@ -26,7 +26,7 @@ services:
     container_name: mysql
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_PASS}
       MYSQL_DATABASE: ${DB_NAME}
     ports:
       - "3306:3306"
@@ -44,4 +44,4 @@ services:
     environment:
       PMA_HOST: ${DB_HOST}
       PMA_USER: ${DB_USER}
-      PMA_PASSWORD: ${DB_PASSWORD}
+      PMA_PASSWORD: ${DB_PASS}

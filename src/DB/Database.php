@@ -2,8 +2,6 @@
 
 namespace App\DB;
 
-use \PDO;
-
 class Database {
 
 	private $conn;
@@ -14,7 +12,7 @@ class Database {
 		$this->conn = new \PDO(
 			"mysql:dbname=".$_ENV['DB_NAME'].";host=".$_ENV['DB_HOST'], 
 			$_ENV['DB_USER'],
-			$_ENV['DB_PASSWORD'], 
+			$_ENV['DB_PASS'], 
 			array(\PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8;SET time_zone='America/Sao_Paulo'")
 		);
 
@@ -38,9 +36,8 @@ class Database {
 
 	}
 
-	public function query($rawQuery, $params = array())
-	{
-
+  public function insert($rawQuery, $params = array()):int
+  {
     try {
       
       $this->conn->beginTransaction();
@@ -51,17 +48,19 @@ class Database {
 
       $stmt->execute();
 
+      $lastInsertId = $this->conn->lastInsertId();
+
       $this->conn->commit();
 
+      return $lastInsertId;
+
     } catch (\PDOException $e) {
-      
+        
       $this->conn->rollBack();
       
       throw $e;
-
     }
-
-	}
+  }
 
 	public function select($rawQuery, $params = array()):array
 	{
@@ -78,9 +77,38 @@ class Database {
 
       $results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
+      $stmt->closeCursor();
+
       $this->conn->commit();
 
       return $results;
+
+    } catch (\PDOException $e) {
+      
+      $this->conn->rollBack();
+      
+      throw $e;
+
+    }
+
+	}
+
+	public function query($rawQuery, $params = array()):int
+	{
+
+		try {
+      
+      $this->conn->beginTransaction();
+
+      $stmt = $this->conn->prepare($rawQuery);
+
+      $this->setParams($stmt, $params);
+
+      $stmt->execute();
+
+      $this->conn->commit();
+
+      return $stmt->rowCount();
 
     } catch (\PDOException $e) {
       
