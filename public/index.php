@@ -22,10 +22,7 @@ $app->add(new BasePathMiddleware($app));
 $app->addErrorMiddleware(true, true, true);
 
 $app->add(new Tuupola\Middleware\JwtAuthentication([
-  "header" => "X-Token",
-  "regexp" => "/(.*)/",
   "path" => "/",
-  "secure" => "false",
   "ignore" => [
     "/signin", 
     "/signup", 

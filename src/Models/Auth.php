@@ -5,45 +5,43 @@ namespace App\Models;
 use App\DB\Database;
 use App\Mail\Mailer;
 use App\Models\User;
+use App\Utils\PasswordHelper;
+use App\Traits\TokenGenerator;
 use App\Enums\HttpStatus as HTTPStatus;
 use App\Utils\AESCryptographer;
 use App\Utils\ApiResponseFormatter;
 
 class Auth {
 
+  use TokenGenerator;
+
   public static function signup($data) 
 	{
 
     try {
 
-      if (self::checkUserExists($data)) {
-        
-        return ApiResponseFormatter::formatResponse(
-          HTTPStatus::CONFLICT,
-          "error", 
-          "Usuário já cadastrado no banco de dados",
-          []
-        );
+      $user = new User();
 
-      }
-    
-      $response = User::create($data);
+      $user->setAttributes($data);
 
-      if ($response['status'] == 'error') {
-        
-        return $response;
+      $userData = $user->create();
 
-      }
-
-      return self::generateToken($response['data']);
-
-    } catch (\PDOException $e) {
+      $jwt = self::generateToken($userData);
 
       return ApiResponseFormatter::formatResponse(
-        HTTPStatus::INTERNAL_SERVER_ERROR, 
+        HTTPStatus::CREATED, 
+        "success", 
+        "Usuário cadastrado com sucesso",
+        $jwt
+      );
+
+    } catch (\Exception $e) {
+
+      return ApiResponseFormatter::formatResponse(
+        $e->getCode(), 
         "error", 
-        "Falha ao cadastrar usuário: " . $e->getMessage(),
-        []
+        $e->getMessage(),
+        NULL
       );
 
     }
@@ -65,35 +63,32 @@ class Auth {
       $db = new Database();
 
       $results = $db->select($sql, array(
-        ":deslogin"=>$credential,
-        ":desemail"=>$credential,
-        ":nrcpf"=>$credential
+        ":deslogin" => $credential,
+        ":desemail" => $credential,
+        ":nrcpf"    => $credential
       ));
 
       if (empty($results)) {
+      
+        throw new \Exception("Usuário inexistente ou senha inválida.", HTTPStatus::NOT_FOUND);
 
-        return ApiResponseFormatter::formatResponse(
-          HTTPStatus::NOT_FOUND, 
-          "error", 
-          "Usuário inexistente ou senha inválida",
-          []
-        );
-  
       }
 
-      $data = $results[0];
+      $userData = $results[0];
 
-      if (password_verify($password, $data['despassword'])) {
+      if (!password_verify($password, $userData['despassword'])) {
 
-        return self::generateToken($data);
+        throw new \Exception("Usuário inexistente ou senha inválida.", HTTPStatus::NOT_FOUND);
 
       } 
+
+      $jwt = self::generateToken($userData);
       
       return ApiResponseFormatter::formatResponse(
-        HTTPStatus::NOT_FOUND, 
-        "error", 
-        "Usuário inexistente ou senha inválida",
-        []
+        HTTPStatus::OK, 
+        "success", 
+        "Usuário autenticado com sucesso.",
+        $jwt
       );
 
     } catch (\PDOException $e) {
@@ -101,8 +96,17 @@ class Auth {
       return ApiResponseFormatter::formatResponse(
         HTTPStatus::INTERNAL_SERVER_ERROR, 
         "error", 
-        "Falha na autenticação do usuário: " . $e->getMessage(),
-        []
+        "Erro ao tentar autenticar usuário. Tente novamente mais tarde.",
+        NULL
+      );
+
+    } catch (\Exception $e) {
+      
+      return ApiResponseFormatter::formatResponse(
+        $e->getCode(), 
+        "error", 
+        $e->getMessage(),
+        NULL
       );
 
     }
@@ -122,37 +126,27 @@ class Auth {
       $db = new Database();
 
       $results = $db->select($sql, array(
-        ":email"=>$email
+        ":email" => $email
       ));
 
       if (empty($results)) {
 
-        return ApiResponseFormatter::formatResponse(
-          HTTPStatus::NOT_FOUND, 
-          "error", 
-          "O e-mail informado não consta no banco de dados",
-          []
-        );
+        throw new \Exception("O endereço de e-mail informado não consta no banco de dados.", HTTPStatus::NOT_FOUND);        
 
       } 
       
-      $data = $results[0];
+      $userData = $results[0];
 
       $results = $db->select(
         "CALL sp_userspasswordsrecoveries_create(:iduser, :desip)", array(
-          ":iduser"=>$data['iduser'],
-          ":desip"=>$_SERVER['REMOTE_ADDR']
+          ":iduser" => $userData['iduser'],
+          ":desip"  => $_SERVER['REMOTE_ADDR']
         )
       ); 
 
       if (empty($results))	{
-
-        return ApiResponseFormatter::formatResponse(
-          HTTPStatus::BAD_REQUEST,  
-          "error", 
-          "Não foi possível recuperar a senha",
-          []
-        );
+        
+        throw new \Exception("Não foi possível recuperar a senha", HTTPStatus::BAD_REQUEST);
 
       }
 
@@ -163,12 +157,12 @@ class Auth {
       $link = $_ENV['BASE_URL'] . "/reset?code=$code";
 
       $mailer = new Mailer(
-        $data['desemail'], 
-        $data['desperson'], 
+        $userData['desemail'], 
+        $userData['desperson'], 
         "Redefinição de senha", 
         array(
-          "name"=>$data['desperson'],
-          "link"=>$link
+          "name" => $userData['desperson'],
+          "link" => $link
         )
       );				
 
@@ -177,8 +171,8 @@ class Auth {
       return ApiResponseFormatter::formatResponse(
         HTTPStatus::OK, 
         "success", 
-        "Link de redefinição de senha enviado para o e-mail informado",
-        []
+        "Link de redefinição de senha enviado para o endereço de e-mail informado",
+        NULL
       );
 
     } catch (\PDOException $e) {
@@ -186,11 +180,20 @@ class Auth {
       return ApiResponseFormatter::formatResponse(
         HTTPStatus::INTERNAL_SERVER_ERROR, 
         "error", 
-        "Falha ao recuperar senha: " . $e->getMessage(),
-        []
+        "Erro ao gerar link para redefinição de senha. Tente novamente mais tarde.",
+        NULL
       );
 
-    }		
+    } catch (\Exception $e) {
+      
+      return ApiResponseFormatter::formatResponse(
+        $e->getCode(),
+        "error", 
+        $e->getMessage(),
+        NULL
+      );
+
+    }
 
   }
 
@@ -211,18 +214,13 @@ class Auth {
       $db = new Database();
 
       $results = $db->select($sql, array(
-        ":idrecovery"=>$idrecovery
+        ":idrecovery" => $idrecovery
       ));
 
       if (empty($results)) {
 
-        return ApiResponseFormatter::formatResponse(
-          HTTPStatus::UNAUTHORIZED,  
-          "error", 
-          "O link de redefinição utilizado expirou",
-          []
-        );
-
+        throw new \Exception("O link de redefinição utilizado expirou", HTTPStatus::UNAUTHORIZED);
+        
       } 
       
       return ApiResponseFormatter::formatResponse(
@@ -232,13 +230,13 @@ class Auth {
         $results[0]
       );
 
-    } catch (\PDOException $e) {
+    } catch (\Exception $e) {
       
       return ApiResponseFormatter::formatResponse(
         HTTPStatus::INTERNAL_SERVER_ERROR, 
         "error", 
         "Falha ao validar token: " . $e->getMessage(),
-        []
+        NULL
       );
 
     }
@@ -257,8 +255,8 @@ class Auth {
       $db = new Database();
 
       $db->query($sql, array(
-        ":despassword"=>self::getPasswordHash($password),
-        ":iduser"=>$data['iduser']
+        ":despassword" => PasswordHelper::hashPassword($password),
+        ":iduser"      => $data['iduser']
       ));
 
       self::setForgotUsed($data['idrecovery']);
@@ -267,7 +265,7 @@ class Auth {
         HTTPStatus::OK, 
         "success", 
         "Senha alterada com sucesso",
-        []
+        NULL
       );
 
     } catch (\PDOException $e) {
@@ -276,7 +274,7 @@ class Auth {
         HTTPStatus::INTERNAL_SERVER_ERROR, 
         "error", 
         "Falha ao gravar nova senha: " . $e->getMessage(),
-        []
+        NULL
       );
 
     }
@@ -295,7 +293,7 @@ class Auth {
       $db = new Database();
 
       $db->query($sql, array(
-        ":idrecovery"=>$idrecovery
+        ":idrecovery" => $idrecovery
       ));
 
     } catch (\PDOException $e) {
@@ -304,93 +302,11 @@ class Auth {
         HTTPStatus::INTERNAL_SERVER_ERROR, 
         "error", 
         "Falha ao definir senha antiga como usada: " . $e->getMessage(),
-        []
+        NULL
       );
 
     }
 
-  }
-
-  private static function checkUserExists($data) 
-  {
-
-    $sql = "SELECT * FROM tb_users a 
-            INNER JOIN tb_persons b 
-            ON a.idperson = b.idperson 
-            WHERE a.deslogin = :deslogin 
-            OR b.desemail = :desemail	
-            OR b.nrcpf = :nrcpf";
-
-    try {
-
-      $db = new Database();
-        
-      $results = $db->select($sql, array(
-        ":deslogin" => $data['deslogin'],
-        ":desemail" => $data['desemail'],
-        ":nrcpf" => $data['nrcpf']
-      ));
-
-      return !empty($results);
-
-    } catch (\PDOException $e) {
-
-      return false;
-      
-    }
-
-  }
-
-  private static function getPasswordHash($password)
-	{
-
-		return password_hash($password, PASSWORD_BCRYPT, [
-			'cost' => 12
-		]);
-
-	}
-
-  private static function generateToken($payload)
-  {
-
-      $header = [
-          'typ' => 'JWT',
-          'alg' => 'HS256'
-      ];
-
-      $header = json_encode($header);
-      $payload = json_encode($payload);
-
-      $header = self::base64UrlEncode($header);
-      $payload = self::base64UrlEncode($payload);
-
-      $sign = hash_hmac('sha256', $header . "." . $payload, $_ENV['JWT_SECRET_KEY'], true);
-      $sign = self::base64UrlEncode($sign);
-
-      $token = $header . '.' . $payload . '.' . $sign;
-
-      return ApiResponseFormatter::formatResponse(
-        HTTPStatus::OK, 
-        "success", 
-        "Autenticação efetuada com sucesso",
-        $token
-      );
-
-  }
-  
-  private static function base64UrlEncode($data)
-  {
-
-    $b64 = base64_encode($data);
-
-    if ($b64 === false) {
-        return false;
-    }
-
-    $url = strtr($b64, '+/', '-_');
-
-    return rtrim($url, '=');
-      
   }
 
 }

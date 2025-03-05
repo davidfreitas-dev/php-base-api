@@ -1,16 +1,14 @@
-version: "2"
-
 services:
-  api:
+  backend:
     build: .
-    container_name: api
-    restart: always
+    restart: unless-stopped
     env_file:
       - .env
     ports:
       - "8000:80"
     depends_on:
-      - db
+      database:
+        condition: service_healthy
     volumes:
       - .:/var/www/html
     working_dir: /var/www/html
@@ -21,10 +19,9 @@ services:
         max-file: "5"
         max-size: "10m"
 
-  db:
+  database:
     image: mysql:5.6
-    container_name: mysql
-    restart: always
+    restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASS}
       MYSQL_DATABASE: ${DB_NAME}
@@ -32,16 +29,31 @@ services:
       - "3306:3306"
     volumes:
       - /var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options: 
+        max-file: "5"
+        max-size: "10m"
 
-  phpmyadmin:
+  adminer:
     image: phpmyadmin
-    container_name: phpmyadmin
-    restart: always
+    restart: unless-stopped
     ports:
       - "8080:80"
     depends_on:
-      - db
+      database:
+        condition: service_healthy
     environment:
-      PMA_HOST: ${DB_HOST}
+      PMA_HOST: database
       PMA_USER: ${DB_USER}
       PMA_PASSWORD: ${DB_PASS}
+    logging:
+      driver: "json-file"
+      options: 
+        max-file: "5"
+        max-size: "10m"

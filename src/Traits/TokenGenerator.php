@@ -2,9 +2,6 @@
 
 namespace App\Traits;
 
-use App\Utils\ApiResponseFormatter;
-use App\Enums\HttpStatus as HTTPStatus;
-
 trait TokenGenerator {
 
   private static function generateToken($payload)

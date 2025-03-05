@@ -18,7 +18,7 @@ class PasswordHelper
 
     if (!preg_match('/[a-z]/', $password) || !preg_match('/[A-Z]/', $password)) {
 
-      throw new \Exception("A senha deve conter letras maiúsculas e minúsculas.", HTTPStatus::BAD_REQUEST);
+      throw new \Exception("A senha deve conter pelo menos uma letra maiúscula e minúscula.", HTTPStatus::BAD_REQUEST);
 
     }
 

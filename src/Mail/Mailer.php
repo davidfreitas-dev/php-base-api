@@ -76,7 +76,7 @@ class Mailer {
 		//Set the subject line
 		$this->mail->Subject = $subject;
 		//Replace the plain text body with one created manually
-		$this->mail->Body    = 'Hi, ' . $data['name'] . '<br /><br />Click on the link below to set new password <br /><br /> ' . $data['link'];
+		$this->mail->Body    = 'Hi, ' . $data['name'] . '<br /><br />Click on the link below to reset your password <br /><br /> ' . $data['link'];
 		$this->mail->AltBody = 'This is a plain-text message body';
 
 		//Attach an image file
