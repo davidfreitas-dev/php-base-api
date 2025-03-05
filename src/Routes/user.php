@@ -30,11 +30,13 @@ $app->get('/users/{id}', function (Request $request, Response $response, array $
 
 });
 
-$app->put('/users/update/{id}', function (Request $request, Response $response, array $args) {
+$app->put('/users/update', function (Request $request, Response $response, array $args) {
 
   $data = $request->getParsedBody();
+  
+  $jwt = $request->getAttribute("jwt");
 
-  $data['iduser'] = (int)$args['id'];
+  $data['iduser'] = (int)$jwt['iduser'];
 
   $user = new User();
 

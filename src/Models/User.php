@@ -154,15 +154,13 @@ class User extends Model {
 	public function update() 
 	{
 		
-		$sql = "CALL sp_usersupdate_save(
+		$sql = "CALL sp_users_update(
               :iduser, 
               :desperson, 
               :deslogin, 
-              :despassword, 
               :desemail, 
               :nrphone, 
-              :nrcpf, 
-              :inadmin
+              :nrcpf
             )";
 		
 		try {
@@ -181,30 +179,39 @@ class User extends Model {
 				":iduser"      => $this->getiduser(),
 				":desperson"   => $this->getdesperson(),
 				":deslogin"    => $this->getdeslogin(),
-				":despassword" => PasswordHelper::hashPassword($this->getdespassword()),
 				":desemail"    => strtolower($this->getdesemail()),
 				":nrphone"     => preg_replace('/[^0-9]/is', '', $this->getnrphone()),
-				":nrcpf"       => preg_replace('/[^0-9]/is', '', $this->getnrcpf()),
-				":inadmin"     => $this->getinadmin()
+				":nrcpf"       => preg_replace('/[^0-9]/is', '', $this->getnrcpf())
 			));
+
+      $jwt = self::generateToken($results[0]);
 
 			return ApiResponseFormatter::formatResponse(
         HTTPStatus::OK, 
         "success", 
-        "Usuário atualizado com sucesso",
-        $results
+        "Usuário atualizado com sucesso.",
+        $jwt
       );
 
-		} catch (\Exception $e) {
+		} catch (\PDOException $e) {
 
 			return ApiResponseFormatter::formatResponse(
         HTTPStatus::INTERNAL_SERVER_ERROR, 
         "error", 
-        "Falha ao atualizar dados do usuário: " . $e->getMessage(),
+        "Erro ao atualizar dados do usuário. Tente novamente mais tarde.",
         NULL
       );
 			
-		}		
+		} catch (\Exception $e) {
+
+			return ApiResponseFormatter::formatResponse(
+        $e->getCode(), 
+        "error", 
+        $e->getMessage(),
+        NULL
+      );
+			
+		}				
 
 	}
 

@@ -67,7 +67,7 @@ END$$
 DELIMITER ;
 
 DELIMITER $$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_users_update`(`piduser` INT, `pdesperson` VARCHAR(64), `pdeslogin` VARCHAR(64), `pdespassword` VARCHAR(256), `pdesemail` VARCHAR(128), `pnrphone` VARCHAR(15), `pnrcpf` VARCHAR(15), `pinadmin` TINYINT)
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_users_update`(`piduser` INT, `pdesperson` VARCHAR(64), `pdeslogin` VARCHAR(64), `pdesemail` VARCHAR(128), `pnrphone` VARCHAR(15), `pnrcpf` VARCHAR(15))
 BEGIN
   
   DECLARE vidperson INT;
@@ -84,12 +84,13 @@ BEGIN
   WHERE idperson = vidperson;
     
   UPDATE tb_users
-  SET deslogin = pdeslogin,
-      despassword = pdespassword,
-      inadmin = pinadmin
+  SET deslogin = pdeslogin
   WHERE iduser = piduser;
     
-  SELECT * FROM tb_users a INNER JOIN tb_persons b USING(idperson) WHERE a.iduser = piduser;
+  SELECT * FROM tb_users a 
+  INNER JOIN tb_persons b 
+  USING(idperson) 
+  WHERE a.iduser = piduser;
     
 END$$
 DELIMITER ;
