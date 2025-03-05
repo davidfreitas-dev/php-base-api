@@ -7,6 +7,12 @@ class AESCryptographer {
 	public static function encrypt($data) 
   {
 
+    if (is_array($data)) {
+      
+      $data = json_encode($data);
+
+    }
+
     $code = openssl_encrypt(
       $data, 
       'AES-128-CBC', 
@@ -24,13 +30,17 @@ class AESCryptographer {
 
     $data = base64_decode($code);
 
-    return openssl_decrypt(
+    $decrypted = openssl_decrypt(
       $data, 
       'AES-128-CBC', 
       pack("a16", $_ENV['SECRET']), 
       0, 
       pack("a16", $_ENV['SECRET_IV'])
     );
+
+    $decoded = json_decode($decrypted, true);
+
+    return $decoded !== NULL ? $decoded : $decrypted;
 
   }
     

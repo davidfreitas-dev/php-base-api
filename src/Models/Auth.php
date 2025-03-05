@@ -152,7 +152,10 @@ class Auth {
 
       $recoveryData = $results[0];
 
-      $code = AESCryptographer::encrypt($recoveryData['idrecovery']);
+      $code = AESCryptographer::encrypt([
+        'idrecovery' => $recoveryData['idrecovery'],
+        'iduser'     => $userData['iduser']
+      ]);
 
       $link = $_ENV['BASE_URL'] . "/reset?code=$code";
 
@@ -200,7 +203,15 @@ class Auth {
   public static function validateForgotLink($code)
   {
 
-    $idrecovery = AESCryptographer::decrypt($code);
+    $decryptedData = AESCryptographer::decrypt($code);
+
+    if (!is_array($decryptedData) || !isset($decryptedData['idrecovery'], $decryptedData['iduser'])) {
+      
+      throw new \Exception("Token inválido ou corrompido.", HTTPStatus::UNAUTHORIZED);
+    
+    }
+
+    $idrecovery = $decryptedData['idrecovery'];
 
     $sql = "SELECT * FROM tb_userspasswordsrecoveries a
             INNER JOIN tb_users b USING(iduser)
@@ -219,7 +230,7 @@ class Auth {
 
       if (empty($results)) {
 
-        throw new \Exception("O link de redefinição utilizado expirou", HTTPStatus::UNAUTHORIZED);
+        throw new \Exception("O link de redefinição utilizado expirou.", HTTPStatus::UNAUTHORIZED);
         
       } 
       
@@ -227,15 +238,27 @@ class Auth {
         HTTPStatus::OK, 
         "success", 
         "Token validado com sucesso",
-        $results[0]
+        [
+          "iduser"     => $results[0]['iduser'],
+          "idrecovery" => $results[0]['idrecovery']
+        ]
+      );
+
+    } catch (\PDOException $e) {
+      
+      return ApiResponseFormatter::formatResponse(
+        HTTPStatus::INTERNAL_SERVER_ERROR, 
+        "error", 
+        "Erro ao validar token. Tente novamente mais tarde.",
+        NULL
       );
 
     } catch (\Exception $e) {
       
       return ApiResponseFormatter::formatResponse(
-        HTTPStatus::INTERNAL_SERVER_ERROR, 
+        $e->getCode(), 
         "error", 
-        "Falha ao validar token: " . $e->getMessage(),
+        $e->getMessage(),
         NULL
       );
 
@@ -264,7 +287,7 @@ class Auth {
       return ApiResponseFormatter::formatResponse(
         HTTPStatus::OK, 
         "success", 
-        "Senha alterada com sucesso",
+        "Senha alterada com sucesso.",
         NULL
       );
 
@@ -273,7 +296,7 @@ class Auth {
       return ApiResponseFormatter::formatResponse(
         HTTPStatus::INTERNAL_SERVER_ERROR, 
         "error", 
-        "Falha ao gravar nova senha: " . $e->getMessage(),
+        "Erro ao gravar nova senha. Tente novamente mais tarde.",
         NULL
       );
 
@@ -301,7 +324,7 @@ class Auth {
       return ApiResponseFormatter::formatResponse(
         HTTPStatus::INTERNAL_SERVER_ERROR, 
         "error", 
-        "Falha ao definir senha antiga como usada: " . $e->getMessage(),
+        "Erro ao definir senha antiga como usada. Tente novamente mais tarde",
         NULL
       );
 

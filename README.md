@@ -78,13 +78,14 @@ A API utiliza JWT (JSON Web Token) para autenticação. Abaixo estão os passos 
 
 ## API Documentation
 
-- [User Registration](#user-registration)
-- [User Authentication](#user-authentication)
-- [User Forgot Password](#user-forgot-password)
-- [User Forgot Token](#user-forgot-token)
-- [User Reset Password](#user-reset-password)
+- [Users Registration](#users-registration)
+- [Users Authentication](#users-authentication)
+- [Users Forgot Password](#users-forgot-password)
+- [Users Forgot Token](#users-forgot-token)
+- [Users Reset Password](#users-reset-password)
+- [Users Update](#users-update)
 
-#### User Registration
+#### Users Registration
 
 ```http
   POST /signup
@@ -104,7 +105,7 @@ A API utiliza JWT (JSON Web Token) para autenticação. Abaixo estão os passos 
 
 **Response:** JWT token with user data.
 
-#### User Authentication
+#### Users Authentication
 
 ```http
   POST /signin
@@ -123,7 +124,7 @@ A API utiliza JWT (JSON Web Token) para autenticação. Abaixo estão os passos 
 
 **Response:** JWT token with user data.
 
-#### User Forgot Password
+#### Users Forgot Password
 
 ```http
   POST /forgot
@@ -131,13 +132,15 @@ A API utiliza JWT (JSON Web Token) para autenticação. Abaixo estão os passos 
 
 | Parameter  | Type     | Description                                             |
 | :--------  | :------- | :------------------------------------------------------ |
-| `desemail`    | `string` | **Required**. User's email address                      |
+| `desemail`    | `string` | **Required**. User's email address                   |
 
 **Observation:** The parameters should be passed within a single JSON object.
 
-**Response:** Send reset link to user e-mail.
+**Note:** Send reset link to user e-mail.
 
-#### User Forgot Token
+**Response:** Void
+
+#### Users Forgot Token
 
 ```http
   POST /forgot/token
@@ -149,9 +152,9 @@ A API utiliza JWT (JSON Web Token) para autenticação. Abaixo estão os passos 
 
 **Observation:** The parameters should be passed within a single JSON object.
 
-**Response:** Void
+**Response:** Recovery ID and User ID
 
-#### User Reset Password
+#### Users Reset Password
 
 ```http
   POST /forgot/reset
@@ -165,3 +168,21 @@ A API utiliza JWT (JSON Web Token) para autenticação. Abaixo estão os passos 
 **Observation:** The parameters should be passed within a single JSON object.
 
 **Response:** Void
+
+#### Users Update
+
+```http
+  PUT /users/update
+```
+
+| Parameter     | Type     | Description                                             |
+| :-----------  | :------- | :------------------------------------------------------ |
+| `desperson`   | `string` | User's full name                                        |
+| `deslogin`    | `string` | User's username                                         |
+| `desemail`    | `string` | User's email address                                    |
+| `nrphone`     | `string` | User's phone number                                     |
+| `nrcpf`       | `string` | User's CPF                                              |
+
+**Observation:** The parameters should be passed within a single JSON object.
+
+**Response:** JWT token with updated user data.
