@@ -70,7 +70,7 @@ class Auth {
 
       if (empty($results)) {
       
-        throw new \Exception("Usuário inexistente ou senha inválida.", HTTPStatus::NOT_FOUND);
+        throw new \Exception("Usuário inexistente ou senha inválida.", HTTPStatus::UNAUTHORIZED);
 
       }
 
@@ -78,7 +78,7 @@ class Auth {
 
       if (!password_verify($password, $userData['despassword'])) {
 
-        throw new \Exception("Usuário inexistente ou senha inválida.", HTTPStatus::NOT_FOUND);
+        throw new \Exception("Usuário inexistente ou senha inválida.", HTTPStatus::UNAUTHORIZED);
 
       } 
 
@@ -203,16 +203,6 @@ class Auth {
   public static function validateForgotLink($code)
   {
 
-    $decryptedData = AESCryptographer::decrypt($code);
-
-    if (!is_array($decryptedData) || !isset($decryptedData['idrecovery'], $decryptedData['iduser'])) {
-      
-      throw new \Exception("Token inválido ou corrompido.", HTTPStatus::UNAUTHORIZED);
-    
-    }
-
-    $idrecovery = $decryptedData['idrecovery'];
-
     $sql = "SELECT * FROM tb_userspasswordsrecoveries a
             INNER JOIN tb_users b USING(iduser)
             INNER JOIN tb_persons c USING(idperson)
@@ -221,6 +211,16 @@ class Auth {
             AND DATE_ADD(a.dtregister, INTERVAL 1 HOUR) >= NOW()";
     
     try {
+
+      $decryptedData = AESCryptographer::decrypt($code);
+  
+      if (!is_array($decryptedData) || !isset($decryptedData['idrecovery'], $decryptedData['iduser'])) {
+        
+        throw new \Exception("Token inválido ou corrompido.", HTTPStatus::UNAUTHORIZED);
+      
+      }
+  
+      $idrecovery = $decryptedData['idrecovery'];
       
       $db = new Database();
 
@@ -275,6 +275,8 @@ class Auth {
 
     try {
 
+      PasswordHelper::checkPasswordStrength($password);
+
       $db = new Database();
 
       $db->query($sql, array(
@@ -297,6 +299,15 @@ class Auth {
         HTTPStatus::INTERNAL_SERVER_ERROR, 
         "error", 
         "Erro ao gravar nova senha. Tente novamente mais tarde.",
+        NULL
+      );
+
+    } catch (\Exception $e) {
+      
+      return ApiResponseFormatter::formatResponse(
+        $e->getCode(), 
+        "error", 
+        $e->getMessage(),
         NULL
       );
 

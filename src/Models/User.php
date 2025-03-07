@@ -22,8 +22,7 @@ class User extends Model {
       :despassword, 
       :desemail, 
       :nrphone, 
-      :nrcpf, 
-      :inadmin
+      :nrcpf
     )";
 
     try {
@@ -46,8 +45,7 @@ class User extends Model {
 				":despassword" => PasswordHelper::hashPassword($this->getdespassword()),
 				":desemail"    => strtolower($this->getdesemail()),
 				":nrphone"     => preg_replace('/[^0-9]/is', '', $this->getnrphone()),
-				":nrcpf"       => preg_replace('/[^0-9]/is', '', $this->getnrcpf()),
-				":inadmin"     => $this->getinadmin()
+				":nrcpf"       => preg_replace('/[^0-9]/is', '', $this->getnrcpf())
 			));
 
       return ApiResponseFormatter::formatResponse(
@@ -231,7 +229,7 @@ class User extends Model {
 			return ApiResponseFormatter::formatResponse(
         HTTPStatus::OK, 
         "success", 
-        "Usuário excluido com sucesso",
+        "Usuário excluido com sucesso.",
         NULL
       );
 
@@ -240,7 +238,7 @@ class User extends Model {
 			return ApiResponseFormatter::formatResponse(
         HTTPStatus::INTERNAL_SERVER_ERROR, 
         "error", 
-        "Falha ao excluir usuário: " . $e->getMessage(),
+        "Erro ao excluir usuário. Tente novamente mais tarde.",
         NULL
       );
 			

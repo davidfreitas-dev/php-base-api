@@ -30,7 +30,7 @@ $app->get('/users/{id}', function (Request $request, Response $response, array $
 
 });
 
-$app->put('/users/update', function (Request $request, Response $response, array $args) {
+$app->put('/users/update', function (Request $request, Response $response) {
 
   $data = $request->getParsedBody();
   
@@ -52,9 +52,11 @@ $app->put('/users/update', function (Request $request, Response $response, array
 
 });
 
-$app->delete('/users/delete/{id}', function (Request $request, Response $response, array $args) {
+$app->delete('/users/delete', function (Request $request, Response $response) {
 
-  $id = (int)$args['id'];
+  $jwt = $request->getAttribute("jwt");
+
+  $id = (int)$jwt['iduser'];
 
   $results = User::delete($id);
 

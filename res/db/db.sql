@@ -26,20 +26,22 @@ SET time_zone = "+00:00";
 --
 
 DELIMITER $$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_users_create`(`pdesperson` VARCHAR(64), `pdeslogin` VARCHAR(64), `pdespassword` VARCHAR(256), `pdesemail` VARCHAR(128), `pnrphone` VARCHAR(15), `pnrcpf` VARCHAR(15), `pinadmin` TINYINT)
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_users_create`(`pdesperson` VARCHAR(64), `pdeslogin` VARCHAR(64), `pdespassword` VARCHAR(256), `pdesemail` VARCHAR(128), `pnrphone` VARCHAR(15), `pnrcpf` VARCHAR(15))
 BEGIN
   
   DECLARE vidperson INT;
-    
+
   INSERT INTO tb_persons (desperson, desemail, nrphone, nrcpf)
-  VALUES(pdesperson, pdesemail, pnrphone, pnrcpf);
+  VALUES (pdesperson, pdesemail, pnrphone, pnrcpf);
   
   SET vidperson = LAST_INSERT_ID();
   
-  INSERT INTO tb_users (idperson, deslogin, despassword, inadmin)
-  VALUES(vidperson, pdeslogin, pdespassword, pinadmin);
+  INSERT INTO tb_users (idperson, deslogin, despassword)
+  VALUES (vidperson, pdeslogin, pdespassword);
   
-  SELECT * FROM tb_users a INNER JOIN tb_persons b USING(idperson) WHERE a.iduser = LAST_INSERT_ID();
+  SELECT * FROM tb_users a 
+  INNER JOIN tb_persons b USING(idperson) 
+  WHERE a.iduser = LAST_INSERT_ID();
     
 END$$
 DELIMITER ;
@@ -128,8 +130,7 @@ CREATE TABLE `tb_persons` (
 --
 
 INSERT INTO `tb_persons` (`idperson`, `desperson`, `desemail`, `nrphone`, `nrcpf`, `dtregister`) VALUES
-(1, 'Admin', 'admin@email.com', NULL, NULL, '2024-01-01 00:00:00'),
-(2, 'User', 'user@email.com', NULL, NULL, '2024-01-01 00:00:00');
+(1, 'Admin', 'admin@email.com', NULL, NULL, '2024-01-01 00:00:00');
 
 -- --------------------------------------------------------
 
@@ -151,8 +152,7 @@ CREATE TABLE `tb_users` (
 --
 
 INSERT INTO `tb_users` (`iduser`, `idperson`, `deslogin`, `despassword`, `inadmin`, `dtregister`) VALUES
-(1, 1, 'admin', '$2y$12$YlooCyNvyTji8bPRcrfNfOKnVMmZA9ViM2A3IpFjmrpIbp5ovNmga', 1, '2021-08-11 17:32:22'),
-(2, 2, 'user', '$2y$12$Hl0YFyxxuJ8c/TPpoShRZ.0r3PTP24mL7Q3iTBvC70Reou1dp4ZS6', 0, '2021-08-11 17:32:22');
+(1, 1, 'admin', '$2y$12$YlooCyNvyTji8bPRcrfNfOKnVMmZA9ViM2A3IpFjmrpIbp5ovNmga', 1, '2021-08-11 17:32:22');
 
 -- --------------------------------------------------------
 
@@ -242,7 +242,7 @@ ALTER TABLE `tb_userslogs`
 -- AUTO_INCREMENT de tabela `tb_userspasswordsrecoveries`
 --
 ALTER TABLE `tb_userspasswordsrecoveries`
-  MODIFY `idrecovery` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=52;
+  MODIFY `idrecovery` int NOT NULL AUTO_INCREMENT;
 
 --
 -- Restrições para tabelas despejadas

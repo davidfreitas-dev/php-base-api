@@ -39,40 +39,40 @@ The HOSTNAME in .env file should be the same of docker-compose database service
 
 ---
 
-## Autenticação e Segurança
+## Authentication and Security
 
-### Autenticação com JWT (JSON Web Token)
+### Authentication with JWT (JSON Web Token)
 
-A API utiliza JWT (JSON Web Token) para autenticação. Abaixo estão os passos para autenticar e autorizar as requisições:
+The API uses JWT (JSON Web Token) for authentication. Below are the steps to authenticate and authorize requests:
 
-1. **Obtenção do Token JWT:**
-   - Para acessar os recursos protegidos da API, você precisa obter um token JWT. Isso é feito enviando uma requisição `POST` para o endpoint `/signin` com as credenciais do usuário (e.g., e-mail e senha).
+1. **Obtaining the JWT Token:**  
+   - To access the API's protected resources, you need to obtain a JWT token. This is done by sending a `POST` request to the `/signin` endpoint with the user's credentials (e.g., email and password).
 
-2. **Incluindo o Token nas Requisições:**
-   - Após obter o token JWT, ele deve ser incluído no cabeçalho `Authorization` em todas as requisições subsequentes para acessar os recursos protegidos.
+2. **Including the Token in Requests:**  
+   - After obtaining the JWT token, it must be included in the `Authorization` header in all subsequent requests to access protected resources.
 
-   **Formato do Cabeçalho:**
+   **Header Format:**
 
    ```
    Authorization: Bearer <token>
    ```
 
-   **Exemplo de Requisição Autenticada:**
+   **Example of an Authenticated Request:**
 
    ```http
    GET /users
    Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
    ```
 
-3. **Expiração do Token:**
-   - O token JWT possui um tempo de expiração. Após esse período, será necessário obter um novo token através do processo de autenticação.
-   - Se o token estiver expirado ou for inválido, a API retornará um erro `401 Unauthorized`.
+3. **Token Expiration:**  
+   - The JWT token has an expiration time. After this period, a new token must be obtained through the authentication process.  
+   - If the token is expired or invalid, the API will return a `401 Unauthorized` error.
 
-4. **Rotas Protegidas:**
-   - Todas as rotas que exigem autenticação são protegidas. A tentativa de acessar essas rotas sem um token válido resultará em um erro `401 Unauthorized`.
+4. **Protected Routes:**  
+   - All routes that require authentication are protected. Attempting to access these routes without a valid token will result in a `401 Unauthorized` error.
 
-5. **Logout (Opcional):**
-   - A API pode implementar um endpoint de logout que invalida o token JWT, garantindo que ele não possa mais ser usado. Este passo é opcional e depende da implementação específica da API.
+5. **Logout (Optional):**  
+   - The API may implement a logout endpoint that invalidates the JWT token, ensuring it can no longer be used. This step is optional and depends on the specific API implementation.
 
 ---
 
@@ -84,6 +84,7 @@ A API utiliza JWT (JSON Web Token) para autenticação. Abaixo estão os passos 
 - [Users Forgot Token](#users-forgot-token)
 - [Users Reset Password](#users-reset-password)
 - [Users Update](#users-update)
+- [Users Delete](#users-delete)
 
 #### Users Registration
 
@@ -99,9 +100,8 @@ A API utiliza JWT (JSON Web Token) para autenticação. Abaixo estão os passos 
 | `desemail`    | `string` | **Required**. User's email address                      |
 | `nrphone`     | `string` | User's phone number                                     |
 | `nrcpf`       | `string` | User's CPF                                              |
-| `inadmin`     | `integer`| **Required**. User's access level (1 = admin, 0 = user) |
 
-**Note:** The parameters above should be passed within a single JSON object.
+**Observation:** The parameters above should be passed within a single JSON object.
 
 **Response:** JWT token with user data.
 
@@ -131,12 +131,12 @@ A API utiliza JWT (JSON Web Token) para autenticação. Abaixo estão os passos 
 ```
 
 | Parameter  | Type     | Description                                             |
-| :--------  | :------- | :------------------------------------------------------ |
-| `desemail`    | `string` | **Required**. User's email address                   |
-
-**Observation:** The parameters should be passed within a single JSON object.
+| :--------- | :------- | :------------------------------------------------------ |
+| `desemail` | `string` | **Required**. User's email address                      |
 
 **Note:** Send reset link to user e-mail.
+
+**Observation:** The parameters should be passed within a single JSON object.
 
 **Response:** Void
 
@@ -147,7 +147,7 @@ A API utiliza JWT (JSON Web Token) para autenticação. Abaixo estão os passos 
 ```
 
 | Parameter  | Type     | Description                                             |
-| :--------  | :------- | :------------------------------------------------------ |
+| :--------- | :------- | :------------------------------------------------------ |
 | `token`    | `string` | **Required**. Token sent by email to the user           |
 
 **Observation:** The parameters should be passed within a single JSON object.
@@ -177,12 +177,26 @@ A API utiliza JWT (JSON Web Token) para autenticação. Abaixo estão os passos 
 
 | Parameter     | Type     | Description                                             |
 | :-----------  | :------- | :------------------------------------------------------ |
-| `desperson`   | `string` | User's full name                                        |
-| `deslogin`    | `string` | User's username                                         |
-| `desemail`    | `string` | User's email address                                    |
-| `nrphone`     | `string` | User's phone number                                     |
-| `nrcpf`       | `string` | User's CPF                                              |
+| `desperson`   | `string` | **Required**. User's full name                          |
+| `deslogin`    | `string` | **Required**. User's username                           |
+| `desemail`    | `string` | **Required**. User's email address                      |
+| `nrphone`     | `string` | **Required**. User's phone number                       |
+| `nrcpf`       | `string` | **Required**. User's CPF                                |
+
+**Note:** JWT needed.
 
 **Observation:** The parameters should be passed within a single JSON object.
 
 **Response:** JWT token with updated user data.
+
+#### Users Delete
+
+```http
+  POST /users/delete
+```
+
+**Note:** JWT needed.
+
+**Observation:** No parameters needed.
+
+**Response:** Void
