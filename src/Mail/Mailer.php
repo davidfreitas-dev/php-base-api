@@ -2,102 +2,92 @@
 
 namespace App\Mail;
 
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\SMTP;
 use PHPMailer\PHPMailer\Exception;
+use PHPMailer\PHPMailer\PHPMailer;
+use App\Interfaces\MailerInterface;
+use App\Enums\HttpStatus as HTTPStatus;
 
-require_once __DIR__ . '/../../vendor/autoload.php';
+class Mailer implements MailerInterface {
 
-class Mailer {
+	private PHPMailer $mail;
 
-	private $mail;
+  public function __construct(array $config = [])
+  {
 
-	public function __construct($toAddress, $toName, $subject, $data = array())
-	{
-		
-		$this->mail = new PHPMailer(true);
+    $cfg = array_merge([
+      'host'        => $_ENV['MAILER_HOST'],
+      'port'        => $_ENV['MAILER_PORT'],
+      'username'    => $_ENV['MAILER_USERNAME'],
+      'password'    => $_ENV['MAILER_PASSWORD'],
+      'from_name'   => $_ENV['MAILER_FROM_NAME'],
+      'from_email'  => $_ENV['MAILER_FROM_EMAIL'],
+      'smtp_secure' => $_ENV['MAILER_SMTP_SECURE']
+    ], $config);
 
-		//Enable SMTP debugging
-		// 0 = off (for production use)
-		// 1 = client messages
-		// 2 = client and server messages
-		$this->mail->SMTPDebug = 0;
+    $this->mail = $this->setupMailer($cfg);
+  
+  }
 
-		//Tell PHPMailer to use SMTP
-		$this->mail->isSMTP();		
+  private function setupMailer(array $config): PHPMailer
+  {
+    
+    $mail = new PHPMailer(true);
 
-		//Ask for HTML-friendly debug output
-		// $this->mail->Debugoutput = 'html';
+    $mail->isSMTP();
+    $mail->SMTPDebug  = 0;
+    $mail->Host       = $config['host'];
+    $mail->Port       = $config['port'];
+    $mail->SMTPAuth   = true;
+    $mail->Username   = $config['username'];
+    $mail->Password   = $config['password'];
+    $mail->SMTPSecure = $config['smtp_secure'];
 
-		//Set the hostname of the mail server
-		$this->mail->Host = 'smtp.gmail.com';
-		// use
-		// $this->mail->Host = gethostbyname('smtp.gmail.com');
-		// if your network does not support SMTP over IPv6
+    $mail->setFrom($config['from_email'], $config['from_name']);
+    $mail->isHTML(true);
+    $mail->CharSet = 'UTF-8';
 
-		//Whether to use SMTP authentication
-		$this->mail->SMTPAuth = true;
+    $mail->SMTPOptions = [
+      'ssl' => [
+        'verify_peer'       => false,
+        'verify_peer_name'  => false,
+        'allow_self_signed' => true,
+      ],
+    ];
 
-		//Username to use for SMTP authentication - use full email address for gmail
-		$this->mail->Username = $_ENV['MAILER_USERNAME'];
+    return $mail;
 
-		//Password to use for SMTP authentication
-		$this->mail->Password = $_ENV['MAILER_PASSWORD'];
+  }
 
-		//Set the encryption system to use - ssl (deprecated) or tls
-		$this->mail->SMTPSecure = 'tls';
+	public function send(string $toEmail, string $toName, string $subject, string $contentHtml): bool
+  {
+    
+    try {
+    
+      $this->mail->clearAddresses();
+      $this->mail->addAddress($toEmail, $toName);
+      $this->mail->Subject = $subject;
+      $this->mail->Body    = $this->renderTemplate($subject, $contentHtml);
 
-		//Set the SMTP port number - 587 for authenticated TLS, a.k.a. RFC4409 SMTP submission
-		$this->mail->Port = 587;
+      return $this->mail->send();
+    
+    } catch (Exception $e) {
+    
+      throw new Exception("Erro ao enviar e-mail: {$this->mail->ErrorInfo}", HTTPStatus::SERVICE_UNAVAILABLE);
+    
+    }
+  
+  }
 
-		$this->mail->SMTPOptions = array(
-			'ssl' => array(
-				'verify_peer' => false,
-				'verify_peer_name' => false,
-				'allow_self_signed' => true
-			)
-		);
+  private function renderTemplate(string $subject, string $contentHtml): string
+  {
 
-		//Set who the message is to be sent from
-		$this->mail->setFrom($_ENV['MAILER_USERNAME'], $_ENV['MAILER_NAME_FROM']);
+    ob_start();
+        
+    include __DIR__ . '/../../res/views/emails/default.php';
+        
+    return ob_get_clean();
 
-		//Set an alternative reply-to address
-		//$this->mail->addReplyTo('replyto@example.com', 'First Last');
-
-		//Set who the message is to be sent to
-		$this->mail->addAddress($toAddress, $toName);
-
-		//Read an HTML message body from an external file, convert referenced images to embedded,
-		//convert HTML into a basic plain-text alternative body
-		$this->mail->isHTML(true);
-
-		$this->mail->CharSet = 'UTF-8';
-
-		//Set the subject line
-		$this->mail->Subject = $subject;
-		//Replace the plain text body with one created manually
-		$this->mail->Body    = 'Hi, ' . $data['name'] . '<br /><br />Click on the link below to reset your password <br /><br /> ' . $data['link'];
-		$this->mail->AltBody = 'This is a plain-text message body';
-
-		//Attach an image file
-		//$mail->addAttachment('images/phpmailer_mini.png');
-
-	}
-
-	public function send()
-	{
-
-		try {
-			
-			return $this->mail->send();
-
-		} catch (Exception $e) {
-    		
-			echo "Message could not be sent. Mailer Error: {$this->mail->ErrorInfo}";
-		
-		}
-
-	}
+  }
 
 }
 

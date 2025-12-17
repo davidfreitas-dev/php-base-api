@@ -1,26 +1,45 @@
 services:
-  backend:
-    build: .
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
     restart: unless-stopped
     env_file:
       - .env
-    ports:
-      - "8000:80"
-    depends_on:
-      database:
-        condition: service_healthy
     volumes:
       - .:/var/www/html
     working_dir: /var/www/html
-    # command: sh -c "chmod -R 755 /var/www/html && chown -R www-data:www-data /var/www/html && apache2-foreground"
-    logging:
-      driver: "json-file"
-      options: 
-        max-file: "5"
-        max-size: "10m"
+    expose:
+      - "9000"
+    depends_on:
+      database:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "nc -z localhost 9000 || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  webserver:
+    image: nginx:stable
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - .:/var/www/html:ro
+    depends_on:
+      - api
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
 
   database:
-    image: mysql:5.6
+    image: mysql:8.0
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASS}
@@ -30,17 +49,12 @@ services:
     volumes:
       - /var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
       interval: 10s
       retries: 3
       start_period: 10s
-    logging:
-      driver: "json-file"
-      options: 
-        max-file: "5"
-        max-size: "10m"
 
-  adminer:
+  phpmyadmin:
     image: phpmyadmin
     restart: unless-stopped
     ports:
@@ -52,8 +66,4 @@ services:
       PMA_HOST: database
       PMA_USER: ${DB_USER}
       PMA_PASSWORD: ${DB_PASS}
-    logging:
-      driver: "json-file"
-      options: 
-        max-file: "5"
-        max-size: "10m"
+      UPLOAD_LIMIT: 64M

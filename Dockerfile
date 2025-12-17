@@ -1,14 +1,10 @@
-FROM php:8.1-apache
+FROM php:8.3-fpm
 
-RUN a2enmod rewrite \
-    && a2enmod headers \
-    && service apache2 restart \
-    && docker-php-ext-install pdo pdo_mysql mysqli \
-    && apt-get update && apt-get install -y \
-        zip \
-        unzip \
-        libfreetype6-dev \
-        libjpeg62-turbo-dev \
-        libpng-dev \
+# Instala dependências do sistema e extensões PHP essenciais + GD
+RUN apt-get update && apt-get upgrade -y && apt-get install -y \
+    zip unzip curl git libzip-dev libonig-dev \
+    libpng-dev libjpeg-dev libfreetype6-dev \
+    libxml2-dev libssl-dev nano vim \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) gd
+    && docker-php-ext-install gd pdo_mysql mbstring zip opcache \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*

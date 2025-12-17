@@ -5,310 +5,228 @@ namespace App\Models;
 use App\DB\Database;
 use App\Models\Model;
 use App\Utils\PasswordHelper;
-use App\Traits\TokenGenerator;
-use App\Utils\ApiResponseFormatter;
+use App\Handlers\DocumentHandler;
 use App\Enums\HttpStatus as HTTPStatus;
 
-class User extends Model {
+class User extends Model 
+{
 
-  use TokenGenerator;
+  public function __construct(Database $db)
+  {
+    
+    parent::__construct($db);
+    
+  }
+
+  public function get($userId)
+	{
+
+		$sql = "SELECT u.id, p.name, p.email, p.phone, p.cpfcnpj, u.is_active, u.created_at, u.updated_at
+            FROM users u
+            INNER JOIN persons p ON u.id = p.id
+            WHERE u.id = :userId
+            LIMIT 1";
+
+    $results = $this->db->select($sql, array(
+      ":userId" => $userId
+    ));
+
+    if (empty($results)) {
+
+      throw new \Exception("Usuário não encontrado", HTTPStatus::NOT_FOUND);   
+      
+    }
+
+    $user = $results[0];
+    
+    return $user;
+
+	}
 
   public function create()
   {
-
-    $sql = "CALL sp_users_create(
-      :desperson, 
-      :deslogin, 
-      :despassword, 
-      :desemail, 
-      :nrphone, 
-      :nrcpf
-    )";
-
+    
+    $conn = $this->db->getConnection();
+    
     try {
 
-      if (!filter_var(strtolower($this->getdesemail()), FILTER_VALIDATE_EMAIL)) {
-
-        throw new \Exception("O formato do endereço de e-mail informado não é válido.", HTTPStatus::BAD_REQUEST);
+      $conn->beginTransaction();
         
-      }
+      $this->checkUserExists($this->getCpfcnpj(), $this->getEmail());
 
-      PasswordHelper::checkPasswordStrength($this->getdespassword());
+      $data = [
+        'name'     => $this->getName(),
+        'email'    => $this->getEmail(),
+        'phone'    => $this->getPhone(),
+        'cpfcnpj'  => $this->getCpfcnpj(),
+        'password' => $this->getPassword()
+      ];
 
-      $this->checkUserExists($this->getdeslogin(), $this->getnrcpf(), strtolower($this->getdesemail()));
+      $data['person_id'] = $this->insertPerson($conn, $data);
+
+      $userId = $this->insertUser($conn, $data);
+
+      $conn->commit();
+
+      return self::get($userId);
+
+    } catch (\Throwable $e) {
+
+      $conn->rollBack();
       
-      $db = new Database();
+      throw $e;
 
-			$results = $db->select($sql, array(
-				":desperson"   => $this->getdesperson(),
-				":deslogin"    => $this->getdeslogin(),
-				":despassword" => PasswordHelper::hashPassword($this->getdespassword()),
-				":desemail"    => strtolower($this->getdesemail()),
-				":nrphone"     => preg_replace('/[^0-9]/is', '', $this->getnrphone()),
-				":nrcpf"       => preg_replace('/[^0-9]/is', '', $this->getnrcpf())
-			));
-
-      return ApiResponseFormatter::formatResponse(
-        HTTPStatus::CREATED, 
-        "success", 
-        "Usuário cadastrado com sucesso.",
-        $results[0]
-      );
-
-    } catch (\PDOException $e) {
-			
-			return ApiResponseFormatter::formatResponse(
-        HTTPStatus::INTERNAL_SERVER_ERROR, 
-        "error", 
-        "Erro ao cadastrar usuário. Tente novamente mais tarde.",
-        NULL
-      );
-			
-		}
-
-  }
+    }
   
-	public static function list() 
-  {
-    
-    $sql = "SELECT * FROM tb_users a 
-            INNER JOIN tb_persons b 
-            ON a.idperson = b.idperson";
-		
-		try {
-
-			$db = new Database();
-
-			$results = $db->select($sql);
-			
-			if (empty($results)) {
-
-				throw new \Exception("Nenhum usuário encontrado", HTTPStatus::NO_CONTENT);        
-
-			}
-
-      return ApiResponseFormatter::formatResponse(
-        HTTPStatus::OK, 
-        "success", 
-        "Lista de usuários",
-        $results
-      );
-
-		} catch (\Exception $e) {
-
-			return ApiResponseFormatter::formatResponse(
-        HTTPStatus::INTERNAL_SERVER_ERROR, 
-        "error", 
-        "Falha ao obter usuários: " . $e->getMessage(),
-        NULL
-      );
-			
-		}
-
-	}
-
-	public static function get($iduser)
-	{
-
-		$sql = "SELECT * FROM tb_users a 
-            INNER JOIN tb_persons b 
-            USING(idperson) 
-            WHERE a.iduser = :iduser";
-
-		try {
-
-			$db = new Database();
-
-			$results = $db->select($sql, array(
-				":iduser" => $iduser
-			));
-
-      if (empty($results)) {
-
-        throw new \Exception("Usuário não encontrado", HTTPStatus::NOT_FOUND);   
-        
-      }
-			
-      return ApiResponseFormatter::formatResponse(
-        HTTPStatus::OK, 
-        "success", 
-        "Dados do usuário",
-        $results
-      );
-
-		} catch (\Exception $e) {
-			
-			return ApiResponseFormatter::formatResponse(
-        HTTPStatus::INTERNAL_SERVER_ERROR, 
-        "error", 
-        "Falha ao obter usuário: " . $e->getMessage(),
-        NULL
-      );
-			
-		}
-
-	}
+  }
 
 	public function update() 
 	{
 		
-		$sql = "CALL sp_users_update(
-              :iduser, 
-              :desperson, 
-              :deslogin, 
-              :desemail, 
-              :nrphone, 
-              :nrcpf
-            )";
-		
-		try {
+		$name = mb_convert_case(
+      trim(preg_replace('/\s+/', ' ', $this->getName())),
+      MB_CASE_TITLE,
+      "UTF-8"
+    );
 
-      if (!filter_var(strtolower($this->getdesemail()), FILTER_VALIDATE_EMAIL)) {
+    $email = strtolower(trim($this->getEmail()));
 
-        throw new \Exception("O formato do e-mail informado não é válido.", HTTPStatus::BAD_REQUEST);
-        
-      }
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 
-      $this->checkUserExists($this->getdeslogin(), $this->getnrcpf(), strtolower($this->getdesemail()), $this->getiduser());
-
-			$db = new Database();
-			
-			$results = $db->select($sql, array(
-				":iduser"      => $this->getiduser(),
-				":desperson"   => $this->getdesperson(),
-				":deslogin"    => $this->getdeslogin(),
-				":desemail"    => strtolower($this->getdesemail()),
-				":nrphone"     => preg_replace('/[^0-9]/is', '', $this->getnrphone()),
-				":nrcpf"       => preg_replace('/[^0-9]/is', '', $this->getnrcpf())
-			));
-
-      $jwt = self::generateToken($results[0]);
-
-			return ApiResponseFormatter::formatResponse(
-        HTTPStatus::OK, 
-        "success", 
-        "Usuário atualizado com sucesso.",
-        $jwt
-      );
-
-		} catch (\PDOException $e) {
-
-			return ApiResponseFormatter::formatResponse(
-        HTTPStatus::INTERNAL_SERVER_ERROR, 
-        "error", 
-        "Erro ao atualizar dados do usuário. Tente novamente mais tarde.",
-        NULL
-      );
-			
-		} catch (\Exception $e) {
-
-			return ApiResponseFormatter::formatResponse(
-        $e->getCode(), 
-        "error", 
-        $e->getMessage(),
-        NULL
-      );
-			
-		}				
-
-	}
-
-	public static function delete($iduser) 
-	{
-		
-		$sql = "CALL sp_users_delete(:iduser)";		
-		
-		try {
-
-			$db = new Database();
-			
-			$db->query($sql, array(
-				":iduser"=>$iduser
-			));
-			
-			return ApiResponseFormatter::formatResponse(
-        HTTPStatus::OK, 
-        "success", 
-        "Usuário excluido com sucesso.",
-        NULL
-      );
-
-		} catch (\PDOException $e) {
-
-			return ApiResponseFormatter::formatResponse(
-        HTTPStatus::INTERNAL_SERVER_ERROR, 
-        "error", 
-        "Erro ao excluir usuário. Tente novamente mais tarde.",
-        NULL
-      );
-			
-		}		
-
-	}
-
-  private function checkUserExists($deslogin, $nrcpf, $desemail, $iduser = NULL) 
-  {
-
-    $nrcpf = $nrcpf !== NULL ? preg_replace('/[^0-9]/is', '', $nrcpf) : '';
-
-    $sql = "SELECT * FROM tb_users u
-            INNER JOIN tb_persons p
-            USING(idperson) 
-            WHERE (u.deslogin = :deslogin 
-              OR p.nrcpf = :nrcpf 
-              OR p.desemail = :desemail)";
-
-    if ($iduser) {
-
-      $sql .= " AND u.iduser != :iduser";
-
-    }
-
-    try {
-
-      $db = new Database();
-
-      $params = [
-        ":deslogin" => $deslogin,
-        ":nrcpf"    => $nrcpf,
-        ":desemail" => $desemail,
-      ];
-
-      if ($iduser) {
-
-        $params[":iduser"] = $iduser;
-  
-      }
-        
-      $results = $db->select($sql, $params);
-
-      if (count($results) > 0) {
-        
-        if ($results[0]['deslogin'] === $deslogin) {
-            
-          throw new \Exception("O nome de usuário informado já está em uso.", HTTPStatus::BAD_REQUEST);
-          
-        }
-
-        if ($results[0]['nrcpf'] === $nrcpf) {
-          
-          throw new \Exception("O CPF informado já está cadastrado.", HTTPStatus::BAD_REQUEST);
-          
-        }
-
-        if ($results[0]['desemail'] === $desemail) {
-          
-          throw new \Exception("O endereço de e-mail informado já está cadastrado.", HTTPStatus::BAD_REQUEST);
-          
-        }
-
-      }
-
-    } catch (\PDOException $e) {
-
-      throw new \Exception("Erro ao checar se o usuário já está cadastrado. Tente novamente mais tarde.", HTTPStatus::INTERNAL_SERVER_ERROR);
+      throw new \Exception("O formato do e-mail informado não é válido.", HTTPStatus::BAD_REQUEST);
       
     }
+
+    $cpfcnpj = preg_replace('/[^0-9]/is', '', $this->getCpfcnpj());
+    
+    if (!DocumentHandler::validateDocument($cpfcnpj)) {
+        
+      throw new \Exception("CPF/CNPJ inválido.", HTTPStatus::BAD_REQUEST);
+    
+    }
+
+    $phone = !empty($this->getPhone()) ? preg_replace('/\D/', '', $this->getPhone()) : NULL;
+
+    $this->checkUserExists($cpfcnpj, $email, $this->getIdUsuario());
+			
+    $affectedRows = $this->db->query(
+      "UPDATE persons 
+       SET name = :name, email = :email, cpfcnpj = :cpfcnpj, phone = :phone
+       WHERE id = :id",
+      [
+        ":name"    => $name,
+        ":email"   => $email,
+        ":phone"   => $phone,
+        ":cpfcnpj" => $cpfcnpj,
+        ":id"      => $this->getUserId()
+      ]
+    );
+
+    $user = $this->get($this->getUserId());
+
+    unset($user['password']);
+
+    return $user;				
+
+	}
+
+	public function delete($userId) 
+	{
+		
+		$sql = "DELETE FROM users WHERE id = :id";
+		
+		$affectedRows = $this->db->query($sql, array(
+      ":id" => $userId
+    ));
+
+    if ($affectedRows === 0) {
+        
+      throw new \Exception("Usuário não encontrado.", HTTPStatus::NOT_FOUND);
+      
+    }
+
+	}
+
+  private function checkUserExists($cpfcnpj, $email, $userId = NULL) 
+  {
+    
+    $sql = "SELECT u.id, p.email, p.cpfcnpj
+            FROM users u
+            INNER JOIN persons p ON u.id = p.id
+            WHERE (p.email = :email OR p.cpfcnpj = :cpfcnpj)";
+
+    if ($userId) {
+        
+      $sql .= " AND u.id != :userId";
+    
+    }
+
+    $params = [
+      ":email"   => $email,
+      ":cpfcnpj" => $cpfcnpj
+    ];
+
+    if ($userId) {
+        
+      $params[":userId"] = $userId;
+    
+    }
+
+    $results = $this->db->select($sql, $params);
+
+    if (count($results) > 0) {
+        
+      $existing = $results[0];
+
+      if (strtolower($existing["email"]) === strtolower($email)) {
+          
+        throw new \Exception("O e-mail informado já está sendo utilizado por outro usuário", HTTPStatus::CONFLICT);
+      
+      }
+
+      if ($existing["cpfcnpj"] === $cpfcnpj) {
+          
+        throw new \Exception("O CPF/CNPJ informado já está sendo utilizado por outro usuário", HTTPStatus::CONFLICT);
+      
+      }
+
+    }
+  
+  }
+
+  private function insertPerson($conn, $data)
+  {
+
+    $sql = "INSERT INTO persons (name, email, phone, cpfcnpj) 
+            VALUES (:name, :email, :phone, :cpfcnpj)";
+
+    $stmt = $conn->prepare($sql);
+
+    $stmt->execute([
+      ":name"    => $data['name'],
+      ":email"   => $data['email'],
+      ":phone"   => $data['phone'],
+      ":cpfcnpj" => $data['cpfcnpj']
+    ]);
+
+    return $conn->lastInsertId();
+    
+  }
+
+  private function insertUser($conn, $data)
+  {
+    
+    $sql = "INSERT INTO users (id, password, is_active, created_at, updated_at) 
+            VALUES (:id, :password, 1, NOW(), NOW())";
+
+    $stmt = $conn->prepare($sql);
+
+    $stmt->execute([
+      ":id"       => $data['person_id'],
+      ":password" => PasswordHelper::hashPassword($data['password'])
+    ]);
+
+    return $data['person_id'];
 
   }
 

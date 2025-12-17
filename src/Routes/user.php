@@ -1,69 +1,56 @@
 <?php
 
+use App\Models\User;
+use App\Utils\Responder;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
-use App\Models\User;
 
-$app->get('/users', function (Request $request, Response $response) {
+$app->group('/users/me', function ($group) {
 
-  $results = User::list();
+  $group->get('', function (Request $request, Response $response) {
 
-  $response->getBody()->write(json_encode($results));
+    $user = $this->get(User::class);
 
-  return $response
-    ->withHeader('content-type', 'application/json')
-    ->withStatus($results['code']);
+    $jwt = $request->getAttribute('token');
 
-});
+    $id = (int)$jwt['sub'];
 
-$app->get('/users/{id}', function (Request $request, Response $response, array $args) {
+    $results = $user->get($id);
 
-  $id = (int)$args['id'];
-
-  $results = User::get($id);
-
-  $response->getBody()->write(json_encode($results));
-
-  return $response
-    ->withHeader('content-type', 'application/json')
-    ->withStatus($results['code']);
-
-});
-
-$app->put('/users/update', function (Request $request, Response $response) {
-
-  $data = $request->getParsedBody();
+    return Responder::success('Dados do usuário.', $results);
   
-  $jwt = $request->getAttribute("jwt");
-
-  $data['iduser'] = (int)$jwt['iduser'];
-
-  $user = new User();
-
-  $user->setAttributes($data);
-
-  $results = $user->update();
-
-  $response->getBody()->write(json_encode($results));
-
-  return $response
-    ->withHeader('content-type', 'application/json')
-    ->withStatus($results['code']);
-
 });
 
-$app->delete('/users/delete', function (Request $request, Response $response) {
+  $group->put('', function (Request $request, Response $response) {
 
-  $jwt = $request->getAttribute("jwt");
+    $user = $this->get(User::class);
 
-  $id = (int)$jwt['iduser'];
+    $jwt = $request->getAttribute('token');
 
-  $results = User::delete($id);
+    $req = $request->getParsedBody();
+    
+    $req['user_id'] = (int)$jwt['sub'];
 
-  $response->getBody()->write(json_encode($results));
+    $user->setAttributes($req);
 
-  return $response
-    ->withHeader('content-type', 'application/json')
-    ->withStatus($results['code']);
+    $user->update();
+
+    return Responder::success('Dados do usuário atualizados com sucesso.');
+      
+  });
+
+  $group->delete('', function (Request $request, Response $response) {
+
+    $user = $this->get(User::class);
+
+    $jwt = $request->getAttribute('token');
+
+    $id = (int)$jwt['sub'];
+
+    $user->delete($id);
+    
+    return Responder::success('Conta excluída com sucesso.');
+
+  });
 
 });

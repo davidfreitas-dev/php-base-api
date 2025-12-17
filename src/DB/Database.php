@@ -1,22 +1,66 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\DB;
+
+use PDO;
+use PDOException;
 
 class Database {
 
-	private $conn;
+  private string $host;
+  private string $dbname;
+  private string $user;
+  private string $pass;
+  private PDO $pdo;
 
-	public function __construct()
-	{
+  public function __construct()
+  {
+    
+    $this->host   = $_ENV['DB_HOST'];
+    $this->dbname = $_ENV['DB_NAME'];
+    $this->user   = $_ENV['DB_USER'];
+    $this->pass   = $_ENV['DB_PASS'];
 
-		$this->conn = new \PDO(
-			"mysql:dbname=".$_ENV['DB_NAME'].";host=".$_ENV['DB_HOST'], 
-			$_ENV['DB_USER'],
-			$_ENV['DB_PASS'], 
-			array(\PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8;SET time_zone='America/Sao_Paulo'")
-		);
+    $this->connect();
 
-	}
+  }
+
+  private function connect()
+  {
+    
+    try {
+      
+      $this->pdo = new PDO(
+        "mysql:host={$this->host};dbname={$this->dbname};charset=utf8",
+        $this->user,
+        $this->pass,
+        [
+          PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+          PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+          PDO::ATTR_EMULATE_PREPARES   => true,
+        ]
+      );
+
+      $this->pdo->exec("SET time_zone = '+00:00'");
+
+    } catch (PDOException $e) {
+      
+      error_log("Erro na conexão com o banco de dados: " . $e->getMessage());
+      
+      throw new PDOException("Database connection failed.");
+      
+    }
+    
+  }
+
+  public function getConnection()
+  {
+      
+    return $this->pdo;
+    
+  }
 
   private function setParams($statement, $parameters = array())
 	{
@@ -38,54 +82,50 @@ class Database {
 
   public function insert($rawQuery, $params = array()):int
   {
+    
     try {
       
-      $this->conn->beginTransaction();
+      $this->pdo->beginTransaction();
 
-      $stmt = $this->conn->prepare($rawQuery);
+      $stmt = $this->pdo->prepare($rawQuery);
 
       $this->setParams($stmt, $params);
 
       $stmt->execute();
 
-      $lastInsertId = $this->conn->lastInsertId();
+      $lastInsertId = (int) $this->pdo->lastInsertId();
 
-      $this->conn->commit();
+      $this->pdo->commit();
 
       return $lastInsertId;
 
-    } catch (\PDOException $e) {
+    } catch (PDOException $e) {
         
-      $this->conn->rollBack();
+      $this->pdo->rollBack();
       
       throw $e;
     }
+
   }
 
 	public function select($rawQuery, $params = array()):array
 	{
 
 		try {
-
-      $this->conn->beginTransaction();
       
-      $stmt = $this->conn->prepare($rawQuery);
+      $stmt = $this->pdo->prepare($rawQuery);
 
       $this->setParams($stmt, $params);
 
       $stmt->execute();
 
-      $results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+      $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
       $stmt->closeCursor();
 
-      $this->conn->commit();
-
       return $results;
 
-    } catch (\PDOException $e) {
-      
-      $this->conn->rollBack();
+    } catch (PDOException $e) {
       
       throw $e;
 
@@ -98,21 +138,21 @@ class Database {
 
 		try {
       
-      $this->conn->beginTransaction();
+      $this->pdo->beginTransaction();
 
-      $stmt = $this->conn->prepare($rawQuery);
+      $stmt = $this->pdo->prepare($rawQuery);
 
       $this->setParams($stmt, $params);
 
       $stmt->execute();
 
-      $this->conn->commit();
+      $this->pdo->commit();
 
       return $stmt->rowCount();
 
-    } catch (\PDOException $e) {
+    } catch (PDOException $e) {
       
-      $this->conn->rollBack();
+      $this->pdo->rollBack();
       
       throw $e;
 

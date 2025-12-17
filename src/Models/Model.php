@@ -2,15 +2,27 @@
 
 namespace App\Models;
 
+use App\DB\Database;
+
 class Model {
 
 	private $values = [];
+
+  protected Database $db;
+
+  public function __construct(?Database $db = NULL)
+  {
+      
+    $this->db = $db;
+    
+  }
 
 	public function __call($name, $args)
 	{
 
 		$method = substr($name, 0, 3);
-		$fieldName = substr($name, 3, strlen($name));
+		
+    $fieldName = substr($name, 3, strlen($name));
 
 		switch ($method)
 		{

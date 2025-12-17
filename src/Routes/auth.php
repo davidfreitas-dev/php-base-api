@@ -1,81 +1,92 @@
 <?php
 
+use App\Mail\Mailer;
+use App\Utils\Responder;
+use App\Services\AuthService;
+use App\Services\MailService;
+use App\Services\TokenService;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
-use App\Models\Auth;
 
-$app->post('/signup', function (Request $request, Response $response) {
- 
-  $data = $request->getParsedBody();
+$app->group('/auth', function ($group) {
 
-  $results = Auth::signup($data);
+  $group->post('/signup', function (Request $request, Response $response) {
 
-  $response->getBody()->write(json_encode($results));
+    $auth = $this->get(AuthService::class);
+  
+    $req = $request->getParsedBody();
 
-  return $response
-    ->withHeader('content-type', 'application/json')
-    ->withStatus($results['code']);
- 
-});
+    $results = $auth->signup($req);
 
-$app->post('/signin', function (Request $request, Response $response) {
+    return Responder::success('Cadastro efetuado com sucesso.', $results, 201);
 
-  $data = $request->getParsedBody();
+  });
 
-  $results = Auth::signin($data['deslogin'], $data['despassword']);
+  $group->post('/signin', function (Request $request, Response $response) {
 
-  $response->getBody()->write(json_encode($results));
+    $auth = $this->get(AuthService::class);
+  
+    $req = $request->getParsedBody();
 
-  return $response
-    ->withHeader('content-type', 'application/json')
-    ->withStatus($results['code']);
+    $authData = $auth->signin($req['login'], $req['password']);
 
-});
+    return Responder::success('Autenticação efetuada com sucesso.', $authData);
 
-$app->post('/forgot', function (Request $request, Response $response) {
- 
-  $data = $request->getParsedBody();
+  });
 
-  $results = Auth::getForgotLink($data['desemail']);
+  $group->post('/forgot', function (Request $request, Response $response) {
 
-  $response->getBody()->write(json_encode($results));
-
-  return $response
-    ->withHeader('content-type', 'application/json')
-    ->withStatus($results['code']);
- 
-});
-
-$app->post('/forgot/token', function (Request $request, Response $response) {
- 
-  $data = $request->getParsedBody();
-
-  $results = Auth::validateForgotLink($data['token']);
-
-  $response->getBody()->write(json_encode($results));
-
-  return $response
-    ->withHeader('content-type', 'application/json')
-    ->withStatus($results['code']);
- 
-});
-
-$app->post('/forgot/reset', function (Request $request, Response $response) {
- 
-  $data = $request->getParsedBody();
-
-  $results = Auth::validateForgotLink($data['token']);
-
-  if ($results['status'] == 'success') {
+    $auth = $this->get(AuthService::class);
+  
+    $mail = $this->get(MailService::class);
     
-    $results = Auth::setNewPassword($data['despassword'], $results['data']);
+    $req = $request->getParsedBody();
 
-  }
+    $authData = $auth->requestPasswordReset($req['email']);
 
-  $response->getBody()->write(json_encode($results));
+    $mail->sendPasswordReset(
+      $authData['user']['email'],
+      $authData['user']['name'],
+      $authData['link']
+    );
 
-  return $response
-    ->withHeader('content-type', 'application/json')
-    ->withStatus($results['code']);
- 
+    return Responder::success('E-mail de recuperação enviado com sucesso.');
+
+  });
+
+  $group->post('/verify', function (Request $request, Response $response) {
+
+    $auth = $this->get(AuthService::class);
+  
+    $req = $request->getParsedBody();
+
+    $auth->verifyResetToken($req['token']);
+
+    return Responder::success('Token de recuperação validado com sucesso.');
+
+  });
+
+  $group->post('/reset', function (Request $request, Response $response) {
+
+    $auth = $this->get(AuthService::class);
+  
+    $req = $request->getParsedBody();
+
+    $auth->resetPassword($req['token'], $req['password']);
+
+    return Responder::success('Senha redefinida com sucesso.');
+
+  });
+
+  $group->get('/token', function (Request $request, Response $response) {
+
+    $jwt = TokenService::generatePublicToken();
+
+    return Responder::success('Token público gerado com sucesso.', [
+      "token" => $jwt,
+      "type"  => "Bearer"
+    ]);
+      
+  });
+
 });
