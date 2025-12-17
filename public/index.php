@@ -10,11 +10,7 @@ use App\Middleware\GlobalErrorMiddleware;
 use Selective\BasePath\BasePathMiddleware;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
-use JimTools\JwtAuth\Middleware\JwtAuthentication;
-use JimTools\JwtAuth\Decoder\FirebaseDecoder;
-use JimTools\JwtAuth\Rules\RequestPathRule;
-use JimTools\JwtAuth\Options;
-use JimTools\JwtAuth\Secret;
+use App\Middleware\JwtAuthMiddleware;
 
 define('APP_ROOT', dirname(__DIR__));
 
@@ -46,28 +42,7 @@ $errorMiddleware->setDefaultErrorHandler($container->get(GlobalErrorMiddleware::
 
 $app->add(new CorsMiddleware());
 
-$options = new Options(
-  isSecure: $_ENV['APP_ENV'] === 'production'
-);
-
-$decoder = new FirebaseDecoder(new Secret($_ENV['JWT_SECRET_KEY'], 'HS256'));
-
-$rules = [
-  new RequestPathRule(
-    paths: ['/'],
-    ignore: [
-      "/images", 
-      "/auth/signin", 
-      "/auth/signup", 
-      "/auth/forgot", 
-      "/auth/verify", 
-      "/auth/reset", 
-      "/auth/token" 
-    ]
-  )
-];
-
-$app->add(new JwtAuthentication($options, $decoder, $rules));
+$app->add(($container->get(JwtAuthMiddleware::class))());
 
 $app->get("/", function (Request $request, Response $response) {
     

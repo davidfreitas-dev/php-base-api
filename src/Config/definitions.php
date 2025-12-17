@@ -19,5 +19,6 @@ return [
 
   // MIDDLEWARE
   \App\Middleware\GlobalErrorMiddleware::class => DI\autowire(),
+  \App\Middleware\JwtAuthMiddleware::class     => DI\autowire(),
 
 ];
