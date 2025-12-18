@@ -1,10 +1,8 @@
 <?php
 
-use App\Mail\Mailer;
 use App\Utils\Responder;
 use App\Services\AuthService;
 use App\Services\MailService;
-use App\Services\TokenService;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
@@ -78,15 +76,16 @@ $app->group('/auth', function ($group) {
 
   });
 
-  $group->get('/token', function (Request $request, Response $response) {
+  $group->post('/token', function (Request $request, Response $response) {
 
-    $jwt = TokenService::generatePublicToken();
+    $auth = $this->get(AuthService::class);
+  
+    $req = $request->getParsedBody();
 
-    return Responder::success('Token público gerado com sucesso.', [
-      "token" => $jwt,
-      "type"  => "Bearer"
-    ]);
-      
+    $authData = $auth->refreshToken($req['refresh_token']);
+
+    return Responder::success('Token atualizado com sucesso.', $authData);
+
   });
 
 });

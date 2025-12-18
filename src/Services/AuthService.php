@@ -37,15 +37,17 @@ class AuthService
 
     $this->user->setAttributes($data);
 
-    $data = $this->user->create();
+    $user = $this->user->create();
 
-    unset($data['password']);
+    unset($user['password']);
 
-    $jwt = $this->tokenService->generatePrivateToken($data);
+    $tokens = $this->tokenService->generateTokenPair($user);
 
     return [
-      "token" => $jwt,
-      "type"  => "Bearer"
+      'access_token'  => $tokens['access_token'],
+      'expires_in'    => $_ENV['JWT_ACCESS_TOKEN_EXP_SECONDS'],
+      'token_type'    => 'Bearer',
+      'refresh_token' => $tokens['refresh_token'],
     ];
 
 	}
@@ -93,11 +95,13 @@ class AuthService
 
     unset($user["password"]);
 
-    $jwt = $this->tokenService->generatePrivateToken($user);
+    $tokens = $this->tokenService->generateTokenPair($user);
 
     return [
-      "token" => $jwt,
-      "type"  => "Bearer"
+      'access_token'  => $tokens['access_token'],
+      'expires_in'    => $_ENV['JWT_ACCESS_TOKEN_EXP_SECONDS'],
+      'token_type'    => 'Bearer',
+      'refresh_token' => $tokens['refresh_token'],
     ];
   
   }
@@ -138,7 +142,7 @@ class AuthService
     ]);
 
     return [
-      "link"        => $_ENV["SITE_URL"] . "/reset?code=$code",
+      "link"        => $_ENV["APP_URL"] . "/reset?code=$code",
       "user"        => $user,
       "recovery_id" => $recoveryId
     ];
@@ -295,6 +299,40 @@ class AuthService
 
     PasswordHelper::checkPasswordStrength($data['password']);
     
+  }
+
+
+  public function refreshToken(string $refreshToken): array
+  {
+      if (empty($refreshToken)) {
+          throw new \Exception("Refresh token não fornecido.", HTTPStatus::BAD_REQUEST);
+      }
+
+      try {
+          $decoded = $this->tokenService->decodeToken($refreshToken);
+      } catch (\Exception $e) {
+          throw new \Exception("Refresh token inválido ou expirado.", HTTPStatus::UNAUTHORIZED);
+      }
+
+      if ($decoded->type !== "refresh") {
+          throw new \Exception("Token inválido para esta operação.", HTTPStatus::UNAUTHORIZED);
+      }
+
+      $userId = $decoded->sub;
+      
+      $user = $this->user->find((int)$userId);
+
+      if (!$user) {
+          throw new \Exception("Usuário não encontrado.", HTTPStatus::NOT_FOUND);
+      }
+
+      $newAccessToken = $this->tokenService->generateAccessToken($user);
+
+      return [
+          "access_token" => $newAccessToken,
+          "expires_in" => $_ENV["JWT_ACCESS_TOKEN_EXP_SECONDS"],
+          "token_type" => "Bearer",
+      ];
   }
 
 }

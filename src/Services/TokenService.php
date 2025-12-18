@@ -1,51 +1,87 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
+
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 
 class TokenService
 {
+
+  private string $jwtSecretKey;
+  private string $apiUrl;
+  private string $appUrl;
+  private int $accessTokenExp;
+  private int $refreshTokenExp;
+
+  /**
+   * TokenService constructor.
+   * Reads JWT configuration from environment variables.
+   */
+  public function __construct()
+  {
+    $this->jwtSecretKey    = $_ENV['JWT_SECRET_KEY'];
+    $this->apiUrl          = $_ENV['API_URL'];
+    $this->appUrl          = $_ENV['APP_URL'];
+    $this->accessTokenExp  = (int)$_ENV['JWT_ACCESS_TOKEN_EXP_SECONDS'];
+    $this->refreshTokenExp = (int)$_ENV['JWT_REFRESH_TOKEN_EXP_SECONDS'];
+  }
+
+  public function generateTokenPair(array $user): array
+  {
     
-  private static function base64UrlEncode(string $data): string
+    $accessToken = $this->generateAccessToken($user);
+    
+    $refreshToken = $this->generateRefreshToken($user);
+
+    return [
+      'access_token'  => $accessToken,
+      'refresh_token' => $refreshToken,
+    ];
+
+  }
+
+  public function generateAccessToken(array $user): string
   {
       
-    return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
-    
-  }
-  
-  private static function generateToken(array $payload): string
-  {
+    $payload = [
+      'iss'  => $this->apiUrl,
+      'aud'  => $this->appUrl,
+      'iat'  => time(),
+      'nbf'  => time(),
+      'exp'  => time() + $this->accessTokenExp,
+      'sub'  => (string) $user['id'],
+      'type' => 'access',
+    ];
 
-    $header = self::base64UrlEncode(json_encode([
-      'typ' => 'JWT',
-      'alg' => 'HS256'
-    ]));
-
-    $payload = self::base64UrlEncode(json_encode($payload));
-
-    $signature = hash_hmac(
-      'sha256',
-      "$header.$payload",
-      $_ENV['JWT_SECRET_KEY'],
-      true
-    );
-
-    $signature = self::base64UrlEncode($signature);
-
-    return "$header.$payload.$signature";
+    return JWT::encode($payload, $this->jwtSecretKey, 'HS256');
 
   }
-  
-  public static function generatePrivateToken(array $user): string
+
+  private function generateRefreshToken(array $user): string
   {
 
     $payload = [
-      "sub"   => $user["id"],
-      "iat"   => time(),
-      "exp"   => time() + 604800
+      'iss' => $this->appUrl,
+      'aud' => $this->appUrl,
+      'iat' => time(),
+      'nbf' => time(),
+      'exp' => time() + $this->refreshTokenExp,
+      'sub' => (string) $user['id'],
+      'type' => 'refresh',
     ];
 
-    return self::generateToken($payload);
+    return JWT::encode($payload, $this->jwtSecretKey, 'HS256');
 
+  }
+
+  public function decodeToken(string $token): object
+  {
+      
+    return JWT::decode($token, new Key($this->jwtSecretKey, 'HS256'));
+    
   }
 
 }

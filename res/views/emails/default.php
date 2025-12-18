@@ -56,7 +56,7 @@
 <body>
   <div class="container">
     <div class="logo">
-      <img src="<?= $_ENV['SITE_URL'] ?>/img/logo.png" alt="Logo">
+      <img src="<?= $_ENV['APP_URL'] ?>/img/logo.png" alt="Logo">
     </div>
     <div class="header">
       <h1><?= htmlspecialchars($subject) ?></h1>

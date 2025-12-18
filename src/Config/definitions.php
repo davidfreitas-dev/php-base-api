@@ -9,10 +9,10 @@ return [
   \App\Models\User::class => DI\autowire()->constructor(DI\get(\App\DB\Database::class)),
 
   // SERVICES
-  \App\Services\AuthService::class     => DI\autowire(),
-  \App\Services\TokenService::class    => DI\autowire(),
   \App\Services\MailService::class     => DI\autowire(),
   \App\Services\ErrorLogService::class => DI\autowire(),
+  \App\Services\AuthService::class     => DI\autowire(),
+  \App\Services\TokenService::class    => DI\autowire(),
 
   // INTERFACES
   \App\Interfaces\MailerInterface::class => DI\autowire(\App\Mail\Mailer::class),

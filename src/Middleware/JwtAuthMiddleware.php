@@ -21,7 +21,20 @@ class JwtAuthMiddleware
     $jwtSecret = $_ENV['JWT_SECRET_KEY'];
 
     $options = new Options(
-      isSecure: $isProduction
+      isSecure: $isProduction,
+      after: new class() implements \JimTools\JwtAuth\Handlers\AfterHandlerInterface {
+        public function __invoke(\Psr\Http\Message\ResponseInterface $response,array $arguments): \Psr\Http\Message\ResponseInterface {
+          $token = $arguments['decoded'];
+          
+          if (!isset($token['type']) || $token['type'] !== 'access') {
+            throw new \JimTools\JwtAuth\Exceptions\AuthorizationException(
+              'Invalid token type for authorization'
+            );
+          }
+          
+          return $response;
+        }
+      }
     );
 
     $decoder = new FirebaseDecoder(new Secret($jwtSecret, 'HS256'));
@@ -41,7 +54,9 @@ class JwtAuthMiddleware
       )
     ];
 
-    return new JwtAuthentication($options, $decoder, $rules);
+    $auth = new JwtAuthentication($options, $decoder, $rules);
+
+    return $auth;
     
   }
 
