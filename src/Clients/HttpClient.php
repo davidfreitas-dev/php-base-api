@@ -3,22 +3,22 @@
 namespace App\Clients;
 
 class HttpClient {
-    
+  
   private string $baseUrl;
-  private array $defaultHeaders;
-  private ?array $auth;
 
-  public function __construct(string $baseUrl, array $defaultHeaders = [], ?array $auth = null)
-  {
+  public function __construct(
+    string $baseUrl,
+    private array $defaultHeaders = [],
+    private ?array $auth = null
+  ) {
     
     $this->baseUrl = rtrim($baseUrl, '/');
-    $this->defaultHeaders = $defaultHeaders;
-    $this->auth = $auth;
-  
+    
   }
 
   public function request(string $method, string $path, array $headers = [], array $body = []): object
   {    
+    
     $url = $this->baseUrl . $path;
 
     $curl = curl_init();
@@ -33,12 +33,16 @@ class HttpClient {
     ];
 
     if (!empty($body) && in_array(strtoupper($method), ['POST','PUT','PATCH'])) {
+      
       $options[CURLOPT_POSTFIELDS] = json_encode($body);
+      
     }
 
     if ($this->auth) {
-      $options[CURLOPT_HTTPAUTH] = CURLAUTH_BASIC;
+      
+      $options[CURLOPT_HTTPAUTH] = CURLAUTH_BASIC;      
       $options[CURLOPT_USERPWD]  = $this->auth['username'] . ':' . $this->auth['password'];
+    
     }
 
     curl_setopt_array($curl, $options);
@@ -52,7 +56,9 @@ class HttpClient {
     $response = json_decode($raw);
 
     if ($status >= 400 || $response === NULL) {
+      
       throw new \Exception("Erro HTTP {$status}: " . ($response->error ?? 'Resposta inválida'));
+      
     }
 
     return $response;
@@ -60,12 +66,17 @@ class HttpClient {
 
   private function formatHeaders(array $headers): array
   {
+    
     $formatted = [];
 
     foreach ($headers as $key => $value) {
+      
       $formatted[] = "$key: $value";
+      
     }
     
     return $formatted;
+
   }
+
 }

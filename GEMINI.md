@@ -42,6 +42,7 @@
 - Use code formatters (PHP-CS-Fixer) to maintain consistent style
 - Avoid deep nesting; refactor complex conditionals into separate methods
 - Keep cyclomatic complexity low for maintainability
+- Always use Constructor Property Promotion to simplify class property declarations.
 
 ## Docker Commands Reference
 

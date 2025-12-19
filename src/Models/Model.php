@@ -8,13 +8,8 @@ class Model {
 
 	private $values = [];
 
-  protected Database $db;
-
-  public function __construct(?Database $db = NULL)
+  public function __construct(protected ?Database $db = NULL)
   {
-      
-    $this->db = $db;
-    
   }
 
 	public function __call($name, $args)

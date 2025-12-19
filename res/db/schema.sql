@@ -36,3 +36,9 @@ CREATE TABLE error_logs (
   context JSON NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE jwt_blocklist (
+  jti VARCHAR(255) NOT NULL PRIMARY KEY,
+  expires_at TIMESTAMP NOT NULL,
+  INDEX idx_expires_at (expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

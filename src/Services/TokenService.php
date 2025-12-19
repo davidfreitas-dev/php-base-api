@@ -22,11 +22,13 @@ class TokenService
    */
   public function __construct()
   {
+    
     $this->jwtSecretKey    = $_ENV['JWT_SECRET_KEY'];
     $this->apiUrl          = $_ENV['API_URL'];
     $this->appUrl          = $_ENV['APP_URL'];
     $this->accessTokenExp  = (int)$_ENV['JWT_ACCESS_TOKEN_EXP_SECONDS'];
     $this->refreshTokenExp = (int)$_ENV['JWT_REFRESH_TOKEN_EXP_SECONDS'];
+    
   }
 
   public function generateTokenPair(array $user): array
@@ -54,6 +56,7 @@ class TokenService
       'exp'  => time() + $this->accessTokenExp,
       'sub'  => (string) $user['id'],
       'type' => 'access',
+      'jti'  => bin2hex(random_bytes(16)),
     ];
 
     return JWT::encode($payload, $this->jwtSecretKey, 'HS256');
@@ -64,13 +67,14 @@ class TokenService
   {
 
     $payload = [
-      'iss' => $this->appUrl,
-      'aud' => $this->appUrl,
-      'iat' => time(),
-      'nbf' => time(),
-      'exp' => time() + $this->refreshTokenExp,
-      'sub' => (string) $user['id'],
+      'iss'  => $this->appUrl,
+      'aud'  => $this->appUrl,
+      'iat'  => time(),
+      'nbf'  => time(),
+      'exp'  => time() + $this->refreshTokenExp,
+      'sub'  => (string) $user['id'],
       'type' => 'refresh',
+      'jti'  => bin2hex(random_bytes(16)),
     ];
 
     return JWT::encode($payload, $this->jwtSecretKey, 'HS256');

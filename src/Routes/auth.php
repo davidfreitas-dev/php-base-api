@@ -32,6 +32,16 @@ $app->group('/auth', function ($group) {
 
   });
 
+  $group->post('/logout', function (Request $request, Response $response) {
+      
+    $auth = $this->get(AuthService::class);
+    
+    $result = $auth->logout($request);
+    
+    return Responder::success($result['message']);
+      
+  });
+
   $group->post('/forgot', function (Request $request, Response $response) {
 
     $auth = $this->get(AuthService::class);

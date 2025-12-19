@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\DB\Database;
 use App\Models\Model;
 use App\Utils\PasswordHelper;
 use App\Handlers\DocumentHandler;
@@ -10,14 +9,7 @@ use App\Enums\HttpStatus as HTTPStatus;
 
 class User extends Model 
 {
-
-  public function __construct(Database $db)
-  {
-    
-    parent::__construct($db);
-    
-  }
-
+  
   public function get($userId)
 	{
 
@@ -107,7 +99,7 @@ class User extends Model
 
     $phone = !empty($this->getPhone()) ? preg_replace('/\D/', '', $this->getPhone()) : NULL;
 
-    $this->checkUserExists($cpfcnpj, $email, $this->getIdUsuario());
+    $this->checkUserExists($cpfcnpj, $email, $this->getUserId());
 			
     $affectedRows = $this->db->query(
       "UPDATE persons 

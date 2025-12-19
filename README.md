@@ -78,125 +78,307 @@ The API uses JWT (JSON Web Token) for authentication. Below are the steps to aut
 
 ## API Documentation
 
-- [Users Registration](#users-registration)
-- [Users Authentication](#users-authentication)
-- [Users Forgot Password](#users-forgot-password)
-- [Users Forgot Token](#users-forgot-token)
-- [Users Reset Password](#users-reset-password)
-- [Users Update](#users-update)
-- [Users Delete](#users-delete)
+The API is divided into two main groups of endpoints: **Authentication** and **User**.
 
-#### Users Registration
+### Authentication Endpoints
 
-```http
-  POST /signup
-```
+All authentication-related endpoints are prefixed with `/auth`.
 
-| Parameter     | Type     | Description                                             |
-| :-----------  | :------- | :------------------------------------------------------ |
-| `desperson`   | `string` | **Required**. User's full name                          |
-| `deslogin`    | `string` | **Required**. User's username                           |
-| `despassword` | `string` | **Required**. User's password                           |
-| `desemail`    | `string` | **Required**. User's email address                      |
-| `nrphone`     | `string` | User's phone number                                     |
-| `nrcpf`       | `string` | User's CPF                                              |
+---
 
-**Observation:** The parameters above should be passed within a single JSON object.
+#### User Registration
 
-**Response:** JWT token with user data.
-
-#### Users Authentication
+Registers a new user in the system.
 
 ```http
-  POST /signin
+  POST /auth/signup
 ```
 
-| Parameter     | Type     | Description                                     |
-| :-----------  | :------- | :---------------------------------------------- |
-| `deslogin`    | `string` | User's username                                 |
-| `desemail`    | `string` | User's email address                            |
-| `nrcpf`       | `string` | User's CPF                                      |
-| `despassword` | `string` | **Required**. User's password                   |
+**Payload:**
 
-**Note:** Authentication can be done using the username, email, or CPF along with the password.
+| Parameter  | Type     | Description                |
+| :--------- | :------- | :------------------------- |
+| `name`     | `string` | **Required**. User's full name. |
+| `email`    | `string` | **Required**. User's email address. |
+| `cpfcnpj`  | `string` | **Required**. User's CPF or CNPJ document. |
+| `password` | `string` | **Required**. User's password. |
+| `phone`    | `string` | *Optional*. User's phone number. |
 
-**Observation:** The parameters should be passed within a single JSON object.
+**Response (201 Created):**
 
-**Response:** JWT token with user data.
+Returns a JWT token pair for immediate authentication.
 
-#### Users Forgot Password
+```json
+{
+  "success": true,
+  "message": "Cadastro efetuado com sucesso.",
+  "code": 201,
+  "data": {
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "expires_in": 3600,
+    "token_type": "Bearer",
+    "refresh_token": "def502006bad22d5b4e..."
+  }
+}
+```
+
+---
+
+#### User Authentication
+
+Authenticates a user and provides a new JWT token pair.
 
 ```http
-  POST /forgot
+  POST /auth/signin
 ```
 
-| Parameter  | Type     | Description                                             |
-| :--------- | :------- | :------------------------------------------------------ |
-| `desemail` | `string` | **Required**. User's email address                      |
+**Payload:**
 
-**Note:** Send reset link to user e-mail.
+| Parameter  | Type     | Description                                  |
+| :--------- | :------- | :------------------------------------------- |
+| `login`    | `string` | **Required**. User's email or CPF/CNPJ.      |
+| `password` | `string` | **Required**. User's password.               |
 
-**Observation:** The parameters should be passed within a single JSON object.
+**Response (200 OK):**
 
-**Response:** Void
+```json
+{
+  "success": true,
+  "message": "Autenticação efetuada com sucesso.",
+  "code": 200,
+  "data": {
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "expires_in": 3600,
+    "token_type": "Bearer",
+    "refresh_token": "def502006bad22d5b4e..."
+  }
+}
+```
 
-#### Users Forgot Token
+---
+
+#### User Logout
+
+Invalidates the current JWT access token. Requires authentication.
 
 ```http
-  POST /forgot/token
+  POST /auth/logout
 ```
 
-| Parameter  | Type     | Description                                             |
-| :--------- | :------- | :------------------------------------------------------ |
-| `token`    | `string` | **Required**. Token sent by email to the user           |
+**Note:** Requires `Authorization: Bearer <token>` header.
 
-**Observation:** The parameters should be passed within a single JSON object.
+**Response (200 OK):**
 
-**Response:** Recovery ID and User ID
+```json
+{
+  "success": true,
+  "message": "Logout realizado com sucesso.",
+  "code": 200
+}
+```
 
-#### Users Reset Password
+---
+
+#### Refresh Token
+
+Generates a new JWT token pair using a valid refresh token.
 
 ```http
-  POST /forgot/reset
+  POST /auth/token
 ```
 
-| Parameter     | Type      | Description                                             |
-| :------------ | :-------- | :------------------------------------------------------ |
-| `token`       | `string`  | **Required**. Token sent by email to the user           |
-| `despassword` | `string`  | **Required**. User's password                           |
+**Payload:**
 
-**Observation:** The parameters should be passed within a single JSON object.
+| Parameter       | Type     | Description                             |
+| :-------------- | :------- | :-------------------------------------- |
+| `refresh_token` | `string` | **Required**. The refresh token provided at sign-in. |
 
-**Response:** Void
+**Response (200 OK):**
 
-#### Users Update
+```json
+{
+  "success": true,
+  "message": "Token atualizado com sucesso.",
+  "code": 200,
+  "data": {
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "expires_in": 3600,
+    "token_type": "Bearer",
+    "refresh_token": "def50200abc123d4e5f..."
+  }
+}
+```
+
+---
+
+### Password Recovery
+
+---
+
+#### Request Password Reset
+
+Sends a password reset link to the user's email.
 
 ```http
-  PUT /users/update
+  POST /auth/forgot
 ```
 
-| Parameter     | Type     | Description                                             |
-| :-----------  | :------- | :------------------------------------------------------ |
-| `desperson`   | `string` | **Required**. User's full name                          |
-| `deslogin`    | `string` | **Required**. User's username                           |
-| `desemail`    | `string` | **Required**. User's email address                      |
-| `nrphone`     | `string` | **Required**. User's phone number                       |
-| `nrcpf`       | `string` | **Required**. User's CPF                                |
+**Payload:**
 
-**Note:** JWT needed.
+| Parameter | Type     | Description                             |
+| :-------- | :------- | :-------------------------------------- |
+| `email`   | `string` | **Required**. The user's registered email address. |
 
-**Observation:** The parameters should be passed within a single JSON object.
+**Response (200 OK):**
 
-**Response:** JWT token with updated user data.
+```json
+{
+  "success": true,
+  "message": "E-mail de recuperação enviado com sucesso.",
+  "code": 200
+}
+```
 
-#### Users Delete
+---
+
+#### Verify Reset Token
+
+Verifies the validity of a password reset token sent by email.
 
 ```http
-  POST /users/delete
+  POST /auth/verify
 ```
 
-**Note:** JWT needed.
+**Payload:**
 
-**Observation:** No parameters needed.
+| Parameter | Type     | Description                                 |
+| :-------- | :------- | :------------------------------------------ |
+| `token`   | `string` | **Required**. The encrypted token from the reset link. |
 
-**Response:** Void
+**Response (200 OK):**
+
+```json
+{
+  "success": true,
+  "message": "Token de recuperação validado com sucesso.",
+  "code": 200
+}
+```
+
+---
+
+#### Reset Password
+
+Sets a new password for the user using a valid reset token.
+
+```http
+  POST /auth/reset
+```
+
+**Payload:**
+
+| Parameter  | Type     | Description                                |
+| :--------- | :------- | :----------------------------------------- |
+| `token`    | `string` | **Required**. The encrypted token from the reset link. |
+| `password` | `string` | **Required**. The new password.            |
+
+**Response (200 OK):**
+
+```json
+{
+  "success": true,
+  "message": "Senha redefinida com sucesso.",
+  "code": 200
+}
+```
+
+---
+
+### User Endpoints
+
+Endpoints for managing the authenticated user's data. All endpoints in this group require authentication.
+
+---
+
+#### Get User Data
+
+Retrieves the authenticated user's profile information.
+
+```http
+  GET /users/me
+```
+
+**Note:** Requires `Authorization: Bearer <token>` header.
+
+**Response (200 OK):**
+
+```json
+{
+  "success": true,
+  "message": "Dados do usuário.",
+  "code": 200,
+  "data": {
+    "id": 1,
+    "name": "User Name",
+    "email": "user@example.com",
+    "phone": "11999999999",
+    "cpfcnpj": "12345678900",
+    "is_active": 1,
+    "created_at": "2023-10-27 10:00:00",
+    "updated_at": "2023-10-27 10:00:00"
+  }
+}
+```
+
+---
+
+#### Update User Data
+
+Updates the authenticated user's profile information.
+
+```http
+  PUT /users/me
+```
+
+**Note:** Requires `Authorization: Bearer <token>` header.
+
+**Payload:**
+
+| Parameter | Type     | Description                |
+| :-------- | :------- | :------------------------- |
+| `name`    | `string` | **Required**. User's full name. |
+| `email`   | `string` | **Required**. User's email address. |
+| `cpfcnpj` | `string` | **Required**. User's CPF or CNPJ. |
+| `phone`   | `string` | *Optional*. User's phone number. |
+
+**Response (200 OK):**
+
+```json
+{
+  "success": true,
+  "message": "Dados do usuário atualizados com sucesso.",
+  "code": 200
+}
+```
+
+---
+
+#### Delete User Account
+
+Deletes the authenticated user's account.
+
+```http
+  DELETE /users/me
+```
+
+**Note:** Requires `Authorization: Bearer <token>` header.
+
+**Response (200 OK):**
+
+```json
+{
+  "success": true,
+  "message": "Conta excluída com sucesso.",
+  "code": 200
+}
+```

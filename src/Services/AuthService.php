@@ -9,26 +9,20 @@ use App\Services\TokenService;
 use App\Utils\AESCryptographer;
 use App\Handlers\DocumentHandler;
 use App\Enums\HttpStatus as HTTPStatus;
+use Psr\Http\Message\ServerRequestInterface;
 
 class AuthService
 {
-
-  private $db;
-  private User $user;
-  private TokenService $tokenService;
-
-  public function __construct(Database $db, User $user, TokenService $tokenService)
-  {
-      
-    $this->db = $db;
-    $this->user = $user;
-    $this->tokenService = $tokenService;
-
-  }
+  public function __construct(
+    private Database $db,
+    private User $user,
+    private TokenService $tokenService,
+    private TokenBlocklistService $blocklistService
+  ) { }
 
   public function signup(array $data): array
 	{
-
+		
 		$this->validateRequiredFields($data);
 
     $data = $this->normalizeInput($data);
@@ -104,6 +98,23 @@ class AuthService
       'refresh_token' => $tokens['refresh_token'],
     ];
   
+  }
+
+  public function logout(ServerRequestInterface $request): array
+  {
+    
+    $token = $request->getAttribute('token');
+
+    if (empty($token)) {
+      
+      throw new \Exception("Token não encontrado na requisição.", HTTPStatus::UNAUTHORIZED);
+      
+    }
+
+    $this->blocklistService->block($token['jti'], $token['exp']);
+
+    return ['message' => 'Logout realizado com sucesso.'];
+
   }
 
   public function requestPasswordReset(string $email): array
@@ -301,38 +312,58 @@ class AuthService
     
   }
 
-
   public function refreshToken(string $refreshToken): array
   {
-      if (empty($refreshToken)) {
-          throw new \Exception("Refresh token não fornecido.", HTTPStatus::BAD_REQUEST);
-      }
-
-      try {
-          $decoded = $this->tokenService->decodeToken($refreshToken);
-      } catch (\Exception $e) {
-          throw new \Exception("Refresh token inválido ou expirado.", HTTPStatus::UNAUTHORIZED);
-      }
-
-      if ($decoded->type !== "refresh") {
-          throw new \Exception("Token inválido para esta operação.", HTTPStatus::UNAUTHORIZED);
-      }
-
-      $userId = $decoded->sub;
+    
+    if (empty($refreshToken)) {
+        
+      throw new \Exception("Refresh token não fornecido.", HTTPStatus::BAD_REQUEST);
       
-      $user = $this->user->find((int)$userId);
+    }
 
-      if (!$user) {
-          throw new \Exception("Usuário não encontrado.", HTTPStatus::NOT_FOUND);
-      }
+    try {
+        
+      $decoded = $this->tokenService->decodeToken($refreshToken);
+      
+    } catch (\Exception $e) {
+        
+      throw new \Exception("Refresh token inválido ou expirado.", HTTPStatus::UNAUTHORIZED);
+      
+    }
 
-      $newAccessToken = $this->tokenService->generateAccessToken($user);
+    if ($this->blocklistService->isBlocked($decoded->jti)) {
+      
+      throw new \Exception("Refresh token inválido ou expirado.", HTTPStatus::UNAUTHORIZED);
+      
+    }
 
-      return [
-          "access_token" => $newAccessToken,
-          "expires_in" => $_ENV["JWT_ACCESS_TOKEN_EXP_SECONDS"],
-          "token_type" => "Bearer",
-      ];
+    if ($decoded->type !== "refresh") {
+        
+      throw new \Exception("Token inválido para esta operação.", HTTPStatus::UNAUTHORIZED);
+      
+    }
+
+    $this->blocklistService->block($decoded->jti, $decoded->exp);
+
+    $userId = $decoded->sub;
+    
+    $user = $this->user->get((int)$userId);
+
+    if (!$user) {
+        
+      throw new \Exception("Usuário não encontrado.", HTTPStatus::NOT_FOUND);
+      
+    }
+
+    $tokens = $this->tokenService->generateTokenPair($user);
+
+    return [
+      'access_token'  => $tokens['access_token'],
+      'expires_in'    => $_ENV['JWT_ACCESS_TOKEN_EXP_SECONDS'],
+      'token_type'    => 'Bearer',
+      'refresh_token' => $tokens['refresh_token'],
+    ];
+
   }
 
 }
