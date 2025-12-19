@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Middleware;
 
+use Throwable;
 use App\Enums\HttpStatus;
 use App\Utils\Responder;
 use App\Services\TokenBlocklistService;
@@ -11,9 +12,13 @@ use JimTools\JwtAuth\Secret;
 use JimTools\JwtAuth\Options;
 use JimTools\JwtAuth\Rules\RequestPathRule;
 use JimTools\JwtAuth\Decoder\FirebaseDecoder;
-use JimTools\JwtAuth\Middleware\JwtAuthentication;
 use JimTools\JwtAuth\Handlers\AfterHandlerInterface;
-use Psr\Http\Message\ResponseInterface;
+use JimTools\JwtAuth\Middleware\JwtAuthentication;
+use JimTools\JwtAuth\Exceptions\ExpiredException;
+use JimTools\JwtAuth\Exceptions\AuthorizationException;
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
 
 class JwtAuthMiddleware
 {
@@ -32,15 +37,42 @@ class JwtAuthMiddleware
     private readonly TokenBlocklistService $blocklist
   ) {}
 
-  public function __invoke(): JwtAuthentication
+  public function __invoke(): callable
   {
+    
+    $authMiddleware = $this->createJwtAuthentication();
 
+    return function (Request $request, RequestHandler $handler) use ($authMiddleware): Response {
+      
+      try {
+        
+        return $authMiddleware->process($request, $handler);
+        
+      } catch (ExpiredException $e) {
+        
+        return Responder::error('Sua sessão expirou. Por favor, faça login novamente.', HttpStatus::UNAUTHORIZED);
+        
+      } catch (AuthorizationException $e) {
+        
+        return Responder::error('Não foi possível autenticar sua requisição. Verifique suas credenciais.', HttpStatus::UNAUTHORIZED);
+        
+      } catch (Throwable $e) {            
+        
+        return Responder::error('Erro ao processar autenticação. Tente novamente.', HttpStatus::INTERNAL_SERVER_ERROR);
+        
+      }
+
+    };
+
+  }
+
+  private function createJwtAuthentication(): JwtAuthentication
+  {
     $options = $this->createOptions();
     $decoder = $this->createDecoder();
     $rules   = $this->createRules();
 
     return new JwtAuthentication($options, $decoder, $rules);
-
   }
 
   private function createOptions(): Options
@@ -83,7 +115,7 @@ class JwtAuthMiddleware
         
       public function __construct(private readonly TokenBlocklistService $blocklist) {}
 
-      public function __invoke(ResponseInterface $response,array $arguments): ResponseInterface {
+      public function __invoke(\Psr\Http\Message\ResponseInterface $response,array $arguments): \Psr\Http\Message\ResponseInterface {
         
         $token = $arguments['decoded'];
 
@@ -119,7 +151,7 @@ class JwtAuthMiddleware
     
       }
 
-      private function handleBlockedToken(ResponseInterface $response): ResponseInterface
+      private function handleBlockedToken(\Psr\Http\Message\ResponseInterface $response): \Psr\Http\Message\ResponseInterface
       {
 
         if ($this->isLogoutRequest()) {
