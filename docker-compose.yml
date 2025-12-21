@@ -15,7 +15,7 @@ services:
       database:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
     healthcheck:
       test: [ "CMD-SHELL", "nc -z localhost 9000 || exit 1" ]
       interval: 10s
@@ -57,15 +57,19 @@ services:
       start_period: 10s
 
   redis:
-    image: redis:alpine
+    image: redis:7-alpine
     restart: unless-stopped
     ports:
       - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
+      test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 3
+      start_period: 5s
 
   phpmyadmin:
     image: phpmyadmin
@@ -80,3 +84,6 @@ services:
       PMA_USER: ${DB_USER}
       PMA_PASSWORD: ${DB_PASS}
       UPLOAD_LIMIT: 64M
+
+volumes:
+  redis_data:
