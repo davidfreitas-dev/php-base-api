@@ -14,6 +14,8 @@ services:
     depends_on:
       database:
         condition: service_healthy
+      redis:
+        condition: service_started
     healthcheck:
       test: [ "CMD-SHELL", "nc -z localhost 9000 || exit 1" ]
       interval: 10s
@@ -53,6 +55,17 @@ services:
       interval: 10s
       retries: 3
       start_period: 10s
+
+  redis:
+    image: redis:alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   phpmyadmin:
     image: phpmyadmin

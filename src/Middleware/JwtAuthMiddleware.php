@@ -68,11 +68,13 @@ class JwtAuthMiddleware
 
   private function createJwtAuthentication(): JwtAuthentication
   {
+    
     $options = $this->createOptions();
     $decoder = $this->createDecoder();
     $rules   = $this->createRules();
 
     return new JwtAuthentication($options, $decoder, $rules);
+    
   }
 
   private function createOptions(): Options

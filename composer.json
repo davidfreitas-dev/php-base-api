@@ -4,6 +4,7 @@
     "slim/psr7": "^1.5",
     "selective/basepath": "^2.1",
     "php-di/php-di": "^7.1",
+    "predis/predis": "^3.3",
     "vlucas/phpdotenv": "^5.4",
     "jimtools/jwt-auth": "^2.3",
     "phpmailer/phpmailer": "^6.6"
